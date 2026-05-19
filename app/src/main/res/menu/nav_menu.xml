@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <group android:checkableBehavior="single">
+        
+        <item 
+            android:id="@+id/navUsername"
+            android:icon="@drawable/ic_user"
+            android:title="اسم المستخدم"
+            app:showAsAction="never" />
+
+        <item 
+            android:id="@+id/navMyProjects"
+            android:icon="@drawable/ic_folder"
+            android:title="مشاريعي"
+            app:showAsAction="never" />
+
+        <item 
+            android:id="@+id/navAddProject"
+            android:icon="@drawable/ic_add"
+            android:title="إضافة مشروع"
+            app:showAsAction="never" />
+
+        <item 
+            android:id="@+id/navProfile"
+            android:icon="@drawable/ic_profile"
+            android:title="الملف الشخصي"
+            app:showAsAction="never" />
+
+        <item 
+            android:id="@+id/navChats"
+            android:icon="@drawable/ic_chat"
+            android:title="المحادثات"
+            app:showAsAction="never" />
+
+    </group>
+
+    <item android:title="الإجراءات">
+        <menu>
+            <item 
+                android:id="@+id/navLogout"
+                android:icon="@drawable/ic_logout"
+                android:title="تسجيل الخروج"
+                app:showAsAction="never" />
+        </menu>
+    </item>
+
+</menu>

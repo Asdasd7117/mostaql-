@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="24dp"
+    android:gravity="center"
+    android:background="@color/white">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="📧 التحقق من البريد"
+        android:textSize="28sp"
+        android:textStyle="bold"
+        android:textColor="@color/titleGradientStart"
+        android:layout_marginBottom="16dp" />
+
+    <TextView
+        android:id="@+id/emailText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="تم إرسال الرمز إلى:"
+        android:textSize="16sp"
+        android:textColor="#666666"
+        android:gravity="center"
+        android:layout_marginBottom="32dp" />
+
+    <EditText
+        android:id="@+id/code"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="أدخل الرمز المكون من 6 أرقام"
+        android:inputType="number"
+        android:maxLength="6"
+        android:textSize="24sp"
+        android:textAlignment="center"
+        android:padding="16dp"
+        android:background="@drawable/outline_button"
+        android:layout_marginBottom="24dp" />
+
+    <Button
+        android:id="@+id/btnVerify"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:text="تحقق"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:textColor="@android:color/white"
+        android:background="@drawable/gradient_button"
+        android:layout_marginBottom="16dp" />
+
+    <Button
+        android:id="@+id/btnResend"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:text="إعادة إرسال الرمز"
+        android:textSize="16sp"
+        android:textColor="@color/titleGradientStart"
+        android:background="@drawable/outline_button" />
+
+</LinearLayout>
