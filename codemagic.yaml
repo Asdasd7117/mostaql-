@@ -19,8 +19,12 @@ workflows:
       - name: Build signed APK
         script: ./gradlew assembleRelease
 
+      - name: Rename APK to Release.apk
+        script: |
+          find app/build/outputs/apk -name "*.apk" -exec cp {} app/build/outputs/apk/release/Release.apk \;
+
     artifacts:
-      - "**/*.apk"
+      - "**/Release.apk"
 
     publishing:
       email:
