@@ -4,23 +4,26 @@ workflows:
 
     environment:
       android_signing:
-        - release-key.jks
+        - release-key.jks   # أو غيّرها لاسم keystore في Codemagic مثل damigo
 
       vars:
-        GRADLE_OPTS: "-Dorg.gradle.daemon=false"
+        GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.parallel=true -Dorg.gradle.caching=true"
 
     scripts:
       - name: Grant permissions
         script: chmod +x ./gradlew
 
-      - name: Clean project
-        script: ./gradlew clean
+      - name: Clean project (optional fast skip)
+        script: echo "Skipping clean to speed up build"
+
+      - name: Download dependencies
+        script: ./gradlew dependencies --no-daemon
 
       - name: Build Release APK
-        script: ./gradlew assembleRelease --stacktrace
+        script: ./gradlew assembleRelease --no-daemon --stacktrace --info
 
     artifacts:
-      - app/build/outputs/apk/release/build.apk
+      - app/build/outputs/apk/release/*.apk
 
     publishing:
       email:
