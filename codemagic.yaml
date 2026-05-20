@@ -19,8 +19,10 @@ workflows:
       - name: Build signed APK
         script: ./gradlew assembleRelease
 
-      - name: Find APK location
-        script: find . -name "*.apk"
-
     artifacts:
       - "**/*.apk"
+
+    publishing:
+      email:
+        recipients:
+          - alywm100@gmail.com
