@@ -1,23 +1,31 @@
 workflows:
   android-release:
-    name: Android Release Build
+    name: Android Release Debug Build
 
     environment:
       android_signing:
         - release-key.jks
 
       vars:
-        GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.parallel=true -Dorg.gradle.caching=true"
+        GRADLE_OPTS: >-
+          -Dorg.gradle.daemon=false
+          -Dorg.gradle.parallel=true
+          -Dorg.gradle.caching=true
 
     scripts:
       - name: Grant permissions
         script: chmod +x ./gradlew
 
       - name: Clean project
-        script: ./gradlew clean
+        script: ./gradlew clean --stacktrace --info
 
-      - name: Build Release APK
-        script: ./gradlew assembleRelease --stacktrace --info
+      - name: Build Release APK (FULL LOGS)
+        script: ./gradlew assembleRelease --stacktrace --info --debug
 
     artifacts:
       - app/build/outputs/apk/release/*.apk
+
+    publishing:
+      email:
+        recipients:
+          - alywm100@gmail.com
