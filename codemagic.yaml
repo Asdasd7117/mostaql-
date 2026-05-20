@@ -20,7 +20,7 @@ workflows:
         script: ./gradlew assembleRelease --stacktrace
 
     artifacts:
-      - app/build/outputs/apk/release/*.apk
+      - app/build/outputs/apk/release/build.apk
 
     publishing:
       email:
