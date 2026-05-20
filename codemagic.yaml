@@ -19,12 +19,16 @@ workflows:
       - name: Build signed APK
         script: ./gradlew assembleRelease
 
+      - name: Ensure output directory
+        script: mkdir -p app/build/outputs/apk/release
+
       - name: Rename APK to Release.apk
         script: |
-          find app/build/outputs/apk -name "*.apk" -exec cp {} app/build/outputs/apk/release/Release.apk \;
+          APK_PATH=$(find app/build/outputs/apk -name "*release*.apk" | head -n 1)
+          cp "$APK_PATH" app/build/outputs/apk/release/Release.apk
 
     artifacts:
-      - "**/Release.apk"
+      - app/build/outputs/apk/release/Release.apk
 
     publishing:
       email:
