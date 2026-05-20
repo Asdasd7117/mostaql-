@@ -4,7 +4,7 @@ workflows:
 
     environment:
       android_signing:
-        - release-key.jks
+        - release_key.jks
 
       vars:
         GRADLE_OPTS: "-Dorg.gradle.daemon=false"
@@ -19,5 +19,8 @@ workflows:
       - name: Build signed APK
         script: ./gradlew assembleRelease
 
+      - name: Find APK location
+        script: find . -name "*.apk"
+
     artifacts:
-      - app/build/outputs/apk/release/app-release.apk
+      - "**/*.apk"
