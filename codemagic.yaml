@@ -4,7 +4,7 @@ workflows:
 
     environment:
       android_signing:
-        - release-key.jks.
+        - release-key.jks
 
       vars:
         GRADLE_OPTS: "-Dorg.gradle.daemon=false"
