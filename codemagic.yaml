@@ -16,7 +16,7 @@ workflows:
       - name: Clean project
         script: ./gradlew clean
 
-      - name: Build APK
+      - name: Build Release APK
         script: ./gradlew assembleRelease --stacktrace
 
     artifacts:
