@@ -7,14 +7,17 @@ workflows:
         - release-key.jks
 
       vars:
-        GRADLE_OPTS: "-Dorg.gradle.daemon=false"
+        GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.parallel=true"
 
     scripts:
-      - chmod +x ./gradlew
+      - name: Grant permissions
+        script: chmod +x ./gradlew
 
-      - ./gradlew clean
+      - name: Clean project
+        script: ./gradlew clean
 
-      - ./gradlew assembleRelease --stacktrace --info
+      - name: Build Release APK
+        script: ./gradlew assembleRelease --stacktrace --info
 
     artifacts:
       - app/build/outputs/apk/release/*.apk
