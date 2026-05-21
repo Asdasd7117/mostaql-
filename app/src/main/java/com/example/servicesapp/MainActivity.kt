@@ -161,7 +161,7 @@ class MainActivity : AppCompatActivity() {
             drawerLayout.openDrawer(GravityCompat.START)
         }
 
-        findViewById<ImageView>(R.id.btnCategories).setOnClickListener {
+        btnCategories.setOnClickListener {
             drawerLayout.openDrawer(GravityCompat.START)
         }
 
@@ -186,6 +186,48 @@ class MainActivity : AppCompatActivity() {
                 }
                 R.id.navAddProject -> {
                     checkUsernameAndNavigate(com.example.servicesapp.projects.AddProjectActivity::class.java, GravityCompat.START)
+                    true
+                }
+                R.id.catAll -> {
+                    selectedCategory = "الكل"
+                    Toast.makeText(this, "تم اختيار: $selectedCategory", Toast.LENGTH_SHORT).show()
+                    loadProjectsByCategory(selectedCategory)
+                    drawerLayout.closeDrawer(GravityCompat.START)
+                    true
+                }
+                R.id.catAndroidWeb -> {
+                    selectedCategory = "مشاريع تطبيقات الاندرويد والويب"
+                    Toast.makeText(this, "تم اختيار: $selectedCategory", Toast.LENGTH_SHORT).show()
+                    loadProjectsByCategory(selectedCategory)
+                    drawerLayout.closeDrawer(GravityCompat.START)
+                    true
+                }
+                R.id.catWebsites -> {
+                    selectedCategory = "مشاريع مواقع ويب"
+                    Toast.makeText(this, "تم اختيار: $selectedCategory", Toast.LENGTH_SHORT).show()
+                    loadProjectsByCategory(selectedCategory)
+                    drawerLayout.closeDrawer(GravityCompat.START)
+                    true
+                }
+                R.id.catArticles -> {
+                    selectedCategory = "كتابة مقالات"
+                    Toast.makeText(this, "تم اختيار: $selectedCategory", Toast.LENGTH_SHORT).show()
+                    loadProjectsByCategory(selectedCategory)
+                    drawerLayout.closeDrawer(GravityCompat.START)
+                    true
+                }
+                R.id.catDesigns -> {
+                    selectedCategory = "تصاميم وشعارات"
+                    Toast.makeText(this, "تم اختيار: $selectedCategory", Toast.LENGTH_SHORT).show()
+                    loadProjectsByCategory(selectedCategory)
+                    drawerLayout.closeDrawer(GravityCompat.START)
+                    true
+                }
+                R.id.catUploadAndroid -> {
+                    selectedCategory = "رفع تطبيقات أندرويد"
+                    Toast.makeText(this, "تم اختيار: $selectedCategory", Toast.LENGTH_SHORT).show()
+                    loadProjectsByCategory(selectedCategory)
+                    drawerLayout.closeDrawer(GravityCompat.START)
                     true
                 }
                 R.id.navLogout -> {
