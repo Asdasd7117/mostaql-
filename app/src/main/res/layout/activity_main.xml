@@ -126,4 +126,3 @@
         app:itemIconSize="24dp" />
 
 </androidx.drawerlayout.widget.DrawerLayout>
-        
