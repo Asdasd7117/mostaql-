@@ -36,7 +36,6 @@ class MainActivity : AppCompatActivity() {
     private lateinit var navigationView: NavigationView
     private lateinit var projectsContainer: LinearLayout
     private lateinit var btnMyProjects: Button
-    private lateinit var btnCategories: ImageView
 
     private var selectedCategory: String = "الكل"
     private var currentUserProfile: UserProfile? = null
@@ -49,11 +48,6 @@ class MainActivity : AppCompatActivity() {
         navigationView = findViewById(R.id.navigationView)
         projectsContainer = findViewById(R.id.projectsContainer)
         btnMyProjects = findViewById(R.id.btnMyProjects)
-        btnCategories = findViewById(R.id.btnCategories)
-
-        btnCategories.setOnClickListener { view ->
-            showCategoriesMenu(view)
-        }
 
         lifecycleScope.launch {
             SupabaseClient.client.auth.loadFromStorage()
@@ -158,10 +152,6 @@ class MainActivity : AppCompatActivity() {
     private fun setupNavigation() {
         findViewById<ImageView>(R.id.btnMenu).setOnClickListener {
             Toast.makeText(this, "القائمة", Toast.LENGTH_SHORT).show()
-            drawerLayout.openDrawer(GravityCompat.START)
-        }
-
-        btnCategories.setOnClickListener {
             drawerLayout.openDrawer(GravityCompat.START)
         }
 
