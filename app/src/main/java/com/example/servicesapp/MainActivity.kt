@@ -85,7 +85,6 @@ class MainActivity : AppCompatActivity() {
 
         popupMenu.setOnMenuItemClickListener { item ->
             selectedCategory = item.title.toString()
-            // نقوم بتحديث العنوان فوراً ليراها المستخدم
             Toast.makeText(this, "تم اختيار: $selectedCategory", Toast.LENGTH_SHORT).show()
             loadProjectsByCategory(selectedCategory)
             true
@@ -144,7 +143,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun checkUsernameAndNavigate(destination: Class<*>, extras: (Intent) -> Unit = {}) {
+    private fun checkUsernameAndNavigate(destination: Class<*>, gravityToClose: Int, extras: (Intent) -> Unit = {}) {
         if (currentUserProfile?.username.isNullOrBlank()) {
             Toast.makeText(this, "⚠️ يجب تعيين اسم مستخدم في ملفك الشخصي أولاً!", Toast.LENGTH_LONG).show()
             startActivity(Intent(this, UserProfileActivity::class.java))
@@ -153,11 +152,12 @@ class MainActivity : AppCompatActivity() {
             extras(intent)
             startActivity(intent)
         }
-        drawerLayout.closeDrawer(GravityCompat.START)
+        drawerLayout.closeDrawer(gravityToClose)
     }
 
     private fun setupNavigation() {
         findViewById<ImageView>(R.id.btnMenu).setOnClickListener {
+            Toast.makeText(this, "القائمة", Toast.LENGTH_SHORT).show()
             drawerLayout.openDrawer(GravityCompat.START)
         }
 
@@ -169,11 +169,11 @@ class MainActivity : AppCompatActivity() {
                     true
                 }
                 R.id.navChats -> {
-                    checkUsernameAndNavigate(ChatListActivity::class.java)
+                    checkUsernameAndNavigate(ChatListActivity::class.java, GravityCompat.END)
                     true
                 }
                 R.id.navMyProjects -> {
-                    checkUsernameAndNavigate(UserProjectsActivity::class.java) { intent ->
+                    checkUsernameAndNavigate(UserProjectsActivity::class.java, GravityCompat.START) { intent ->
                         val userId = SupabaseClient.client.auth.currentSessionOrNull()?.user?.id?.toString()
                         intent.putExtra("userId", userId)
                         intent.putExtra("ownerName", currentUserProfile?.username ?: "المستخدم")
@@ -181,7 +181,7 @@ class MainActivity : AppCompatActivity() {
                     true
                 }
                 R.id.navAddProject -> {
-                    checkUsernameAndNavigate(com.example.servicesapp.projects.AddProjectActivity::class.java)
+                    checkUsernameAndNavigate(com.example.servicesapp.projects.AddProjectActivity::class.java, GravityCompat.START)
                     true
                 }
                 R.id.navLogout -> {
@@ -201,10 +201,8 @@ class MainActivity : AppCompatActivity() {
     private fun loadProjectsByCategory(category: String) {
         lifecycleScope.launch {
             try {
-                // سحب المشاريع من المستودع
                 val allProjects = ProjectRepository.getAllProjects()
                 
-                // الحل الجذري: البحث عن "جزء" من النص لضمان ظهور النتائج
                 val filteredProjects = if (category == "الكل") {
                     allProjects
                 } else {
@@ -212,7 +210,6 @@ class MainActivity : AppCompatActivity() {
                         val projectLang = project.language.trim().lowercase()
                         val targetCat = category.trim().lowercase()
                         
-                        // نتحقق إذا كان نص القسم المختار موجود داخل النص المسجل في المشروع أو العكس
                         projectLang.contains(targetCat) || targetCat.contains(projectLang)
                     }
                 }
@@ -302,7 +299,7 @@ class MainActivity : AppCompatActivity() {
         card.addView(TextView(this).apply {
             text = "🔧 ${project.language}"
             textSize = 12f
-            setTextColor(Color.YELLOW) // تمييز اللغة بلون مختلف للتأكد من القيمة
+            setTextColor(Color.YELLOW)
         })
         
         return card
@@ -322,6 +319,8 @@ class MainActivity : AppCompatActivity() {
     override fun onBackPressed() {
         if (drawerLayout.isDrawerOpen(GravityCompat.START)) {
             drawerLayout.closeDrawer(GravityCompat.START)
+        } else if (drawerLayout.isDrawerOpen(GravityCompat.END)) {
+            drawerLayout.closeDrawer(GravityCompat.END)
         } else {
             super.onBackPressed()
         }
