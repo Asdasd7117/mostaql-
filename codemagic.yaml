@@ -5,7 +5,6 @@ workflows:
     environment:
       android_signing:
         - release-key.jks
-
       vars:
         GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.parallel=true"
 
@@ -17,7 +16,13 @@ workflows:
         script: ./gradlew clean
 
       - name: Build Release APK
-        script: ./gradlew assembleRelease --stacktrace --info
+        script: |
+          ./gradlew assembleRelease \
+            -Pandroid.injected.signing.store.file=$CM_KEYSTORE_PATH \
+            -Pandroid.injected.signing.store.password=$CM_KEYSTORE_PASSWORD \
+            -Pandroid.injected.signing.key.alias=$CM_KEY_ALIAS \
+            -Pandroid.injected.signing.key.password=$CM_KEY_PASSWORD \
+            --stacktrace --info
 
     artifacts:
       - app/build/outputs/apk/release/*.apk
