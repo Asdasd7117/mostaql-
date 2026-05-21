@@ -161,6 +161,10 @@ class MainActivity : AppCompatActivity() {
             drawerLayout.openDrawer(GravityCompat.START)
         }
 
+        findViewById<ImageView>(R.id.btnCategories).setOnClickListener {
+            drawerLayout.openDrawer(GravityCompat.START)
+        }
+
         navigationView.setNavigationItemSelectedListener { menuItem ->
             when (menuItem.itemId) {
                 R.id.navUsername, R.id.navProfile -> {
@@ -169,7 +173,7 @@ class MainActivity : AppCompatActivity() {
                     true
                 }
                 R.id.navChats -> {
-                    checkUsernameAndNavigate(ChatListActivity::class.java, GravityCompat.END)
+                    checkUsernameAndNavigate(ChatListActivity::class.java, GravityCompat.START)
                     true
                 }
                 R.id.navMyProjects -> {
@@ -319,8 +323,6 @@ class MainActivity : AppCompatActivity() {
     override fun onBackPressed() {
         if (drawerLayout.isDrawerOpen(GravityCompat.START)) {
             drawerLayout.closeDrawer(GravityCompat.START)
-        } else if (drawerLayout.isDrawerOpen(GravityCompat.END)) {
-            drawerLayout.closeDrawer(GravityCompat.END)
         } else {
             super.onBackPressed()
         }
