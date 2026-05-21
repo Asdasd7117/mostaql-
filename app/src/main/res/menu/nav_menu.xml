@@ -36,6 +36,46 @@
 
     </group>
 
+    <item android:title="أقسام المشاريع">
+        <menu>
+            <item 
+                android:id="@+id/catAll"
+                android:icon="@drawable/ic_menu"
+                android:title="الكل"
+                app:showAsAction="never" />
+                
+            <item 
+                android:id="@+id/catAndroidWeb"
+                android:icon="@drawable/ic_menu"
+                android:title="مشاريع تطبيقات الاندرويد والويب"
+                app:showAsAction="never" />
+
+            <item 
+                android:id="@+id/catWebsites"
+                android:icon="@drawable/ic_menu"
+                android:title="مشاريع مواقع ويب"
+                app:showAsAction="never" />
+
+            <item 
+                android:id="@+id/catArticles"
+                android:icon="@drawable/ic_menu"
+                android:title="كتابة مقالات"
+                app:showAsAction="never" />
+
+            <item 
+                android:id="@+id/catDesigns"
+                android:icon="@drawable/ic_menu"
+                android:title="تصاميم وشعارات"
+                app:showAsAction="never" />
+
+            <item 
+                android:id="@+id/catUploadAndroid"
+                android:icon="@drawable/ic_menu"
+                android:title="رفع تطبيقات أندرويد"
+                app:showAsAction="never" />
+        </menu>
+    </item>
+
     <item android:title="الإجراءات">
         <menu>
             <item 
