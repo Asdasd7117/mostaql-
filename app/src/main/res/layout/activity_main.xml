@@ -116,7 +116,7 @@
         android:id="@+id/navigationView"
         android:layout_width="280dp"
         android:layout_height="match_parent"
-        android:layout_gravity="left"
+        android:layout_gravity="start"
         android:fitsSystemWindows="true"
         android:background="#1F2937" 
         app:headerLayout="@layout/nav_header"
