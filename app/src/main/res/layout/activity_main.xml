@@ -30,16 +30,6 @@
                 android:paddingBottom="8dp"
                 android:gravity="center_vertical">
 
-                <ImageView
-                    android:id="@+id/btnCategories"
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
-                    android:src="@drawable/ic_menu"
-                    android:padding="10dp"
-                    android:background="?attr/selectableItemBackgroundBorderless"
-                    app:tint="#FFFFFF"
-                    android:contentDescription="Categories" />
-
                 <TextView
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
