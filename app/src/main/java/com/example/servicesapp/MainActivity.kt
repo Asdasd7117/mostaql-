@@ -23,7 +23,7 @@ import com.example.servicesapp.projects.UserProjectsActivity
 import com.example.servicesapp.profile.UserProfile
 import com.example.servicesapp.profile.UserProfileActivity
 import com.google.android.material.navigation.NavigationView
-import io.github.jan.supabase.auth.auth
+import io.github.jan.supabase.gotrue.auth
 import io.github.jan.supabase.postgrest.from
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
