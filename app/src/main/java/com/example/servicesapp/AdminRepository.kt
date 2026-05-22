@@ -2,7 +2,7 @@ package com.example.servicesapp.data
 
 import com.example.servicesapp.SupabaseClient
 import com.example.servicesapp.models.Project
-import com.example.servicesapp.models.UserProfile
+import com.example.servicesapp.profile.UserProfile
 import io.github.jan.supabase.gotrue.auth
 import io.github.jan.supabase.postgrest.from
 import kotlinx.coroutines.Dispatchers
@@ -96,7 +96,6 @@ object AdminRepository {
     suspend fun isUserBanned(userId: String, deviceId: String): Boolean {
         return withContext(Dispatchers.IO) {
             try {
-                // ✅ البحث عن user_id أولاً
                 val bannedByUser = SupabaseClient.client
                     .from("banned_users")
                     .select {
@@ -106,7 +105,6 @@ object AdminRepository {
                 
                 if (bannedByUser.isNotEmpty()) return@withContext true
                 
-                // ✅ ثم البحث عن device_id
                 val bannedByDevice = SupabaseClient.client
                     .from("banned_users")
                     .select {
