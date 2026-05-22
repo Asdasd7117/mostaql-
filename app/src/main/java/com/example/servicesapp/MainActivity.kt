@@ -6,7 +6,6 @@ import android.os.Bundle
 import android.view.Gravity
 import android.view.View
 import android.widget.Button
-import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
@@ -24,7 +23,7 @@ import com.example.servicesapp.projects.UserProjectsActivity
 import com.example.servicesapp.profile.UserProfile
 import com.example.servicesapp.profile.UserProfileActivity
 import com.google.android.material.navigation.NavigationView
-import io.github.jan.supabase.gotrue.auth
+import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.from
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -36,6 +35,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var navigationView: NavigationView
     private lateinit var projectsContainer: LinearLayout
     private lateinit var btnMyProjects: Button
+    private lateinit var btnMenu: LinearLayout
 
     private var selectedCategory: String = "الكل"
     private var currentUserProfile: UserProfile? = null
@@ -48,6 +48,7 @@ class MainActivity : AppCompatActivity() {
         navigationView = findViewById(R.id.navigationView)
         projectsContainer = findViewById(R.id.projectsContainer)
         btnMyProjects = findViewById(R.id.btnMyProjects)
+        btnMenu = findViewById(R.id.btnMenu)
 
         lifecycleScope.launch {
             SupabaseClient.client.auth.loadFromStorage()
@@ -150,7 +151,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupNavigation() {
-        findViewById<ImageView>(R.id.btnMenu).setOnClickListener {
+        btnMenu.setOnClickListener {
             Toast.makeText(this, "القائمة", Toast.LENGTH_SHORT).show()
             drawerLayout.openDrawer(GravityCompat.START)
         }
