@@ -56,6 +56,7 @@ dependencies {
     implementation(libs.material)
     implementation(libs.androidx.activity)
     implementation(libs.androidx.constraintlayout)
+implementation("com.startapp:inapp-sdk:5.+")
 
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
 
