@@ -40,15 +40,33 @@
                     android:textColor="#FFFFFF"
                     android:gravity="center" />
 
-                <ImageView
+                <LinearLayout
                     android:id="@+id/btnMenu"
-                    android:layout_width="48dp"
+                    android:layout_width="wrap_content"
                     android:layout_height="48dp"
-                    android:src="@drawable/ic_menu"
-                    android:padding="10dp"
-                    android:background="?attr/selectableItemBackgroundBorderless"
-                    app:tint="#FFFFFF"
-                    android:contentDescription="Menu" />
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingStart="8dp"
+                    android:paddingEnd="12dp"
+                    android:background="?attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="القائمة"
+                        android:textSize="16sp"
+                        android:textColor="#FFFFFF"
+                        android:layout_marginEnd="4dp" />
+
+                    <ImageView
+                        android:layout_width="28dp"
+                        android:layout_height="28dp"
+                        android:src="@drawable/ic_menu"
+                        app:tint="#FFFFFF"
+                        android:contentDescription="Menu" />
+                </LinearLayout>
             </LinearLayout>
         </androidx.appcompat.widget.Toolbar>
 
