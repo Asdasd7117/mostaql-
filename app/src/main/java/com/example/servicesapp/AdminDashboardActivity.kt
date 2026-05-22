@@ -51,7 +51,7 @@ class AdminDashboardActivity : AppCompatActivity() {
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(this@AdminDashboardActivity, "خطأ في جلب البيانات: ${e.message}", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this@AdminDashboardActivity, "خطأ: ${e.message}", Toast.LENGTH_SHORT).show()
                 }
             }
         }
@@ -61,7 +61,7 @@ class AdminDashboardActivity : AppCompatActivity() {
         mainContainer.removeAllViews()
         
         if (users.isEmpty()) {
-            mainContainer.addView(TextView(this).apply { text = "لا يوجد مستخدمين حالياً"; gravity = android.view.Gravity.CENTER })
+            mainContainer.addView(TextView(this).apply { text = "لا يوجد مستخدمين"; gravity = android.view.Gravity.CENTER })
             return
         }
 
@@ -75,7 +75,9 @@ class AdminDashboardActivity : AppCompatActivity() {
                 setBackgroundResource(android.R.drawable.dialog_holo_light_frame)
             }
 
-            val displayEmail = if (!user.email.isNullOrBlank()) user.email else "لا يوجد إيميل مسجل"
+            val targetUserId = user.user_id ?: user.userId ?: ""
+            val targetEmail = user.email ?: ""
+            val displayEmail = if (targetEmail.isNotBlank()) targetEmail else "لا يوجد إيميل مسجل"
             
             userCard.addView(TextView(this).apply {
                 text = "المستخدم: ${user.username}"
@@ -90,7 +92,11 @@ class AdminDashboardActivity : AppCompatActivity() {
                 setPadding(0, 5, 0, 10)
             })
 
-            val uProjects = allProjects.filter { it.userId == user.userId }
+            val uProjects = allProjects.filter { 
+                val pUserId = it.user_id ?: it.userId ?: ""
+                pUserId.lowercase() == targetUserId.lowercase() && targetUserId.isNotBlank()
+            }
+            
             if (uProjects.isNotEmpty()) {
                 userCard.addView(TextView(this).apply { text = "المشاريع:"; setTypeface(null, Typeface.BOLD) })
                 uProjects.forEach { p ->
@@ -105,12 +111,16 @@ class AdminDashboardActivity : AppCompatActivity() {
                 }
             }
 
-            val uComments = allComments.filter { it["user_id"]?.toString() == user.userId }
+            val uComments = allComments.filter { 
+                val cUserId = it["user_id"]?.toString() ?: it["userId"]?.toString() ?: ""
+                cUserId.lowercase() == targetUserId.lowercase() && targetUserId.isNotBlank()
+            }
+            
             if (uComments.isNotEmpty()) {
                 userCard.addView(TextView(this).apply { text = "التعليقات:"; setTypeface(null, Typeface.BOLD); setPadding(0, 10, 0, 0) })
                 uComments.forEach { c ->
                     val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-                    row.addView(TextView(this).apply { text = "💬 ${c["comment_text"]}"; layoutParams = LinearLayout.LayoutParams(0, -2, 1f) })
+                    row.addView(TextView(this).apply { text = "💬 ${c["comment_text"] ?: c["commentText"] ?: ""}"; layoutParams = LinearLayout.LayoutParams(0, -2, 1f) })
                     row.addView(Button(this).apply { 
                         text = "حذف"
                         textSize = 10f
@@ -125,10 +135,10 @@ class AdminDashboardActivity : AppCompatActivity() {
                 setBackgroundColor(android.graphics.Color.RED)
                 setTextColor(android.graphics.Color.WHITE)
                 setOnClickListener { 
-                    if (user.email.isNullOrBlank()) {
-                        Toast.makeText(this@AdminDashboardActivity, "لا يمكن حظر مستخدم بدون إيميل", Toast.LENGTH_SHORT).show()
+                    if (targetEmail.isBlank()) {
+                        Toast.makeText(this@AdminDashboardActivity, "الإيميل مفقود", Toast.LENGTH_SHORT).show()
                     } else {
-                        banUserByEmail(user.email!!, user.userId)
+                        banUserByEmail(targetEmail, targetUserId)
                     }
                 }
             })
@@ -138,6 +148,7 @@ class AdminDashboardActivity : AppCompatActivity() {
     }
 
     private fun banUserByEmail(email: String, userId: String) {
+        if (userId.isBlank()) return
         lifecycleScope.launch {
             try {
                 SupabaseClient.client.from("projects").delete {
@@ -151,10 +162,11 @@ class AdminDashboardActivity : AppCompatActivity() {
                 SupabaseClient.client.from("banned_users").insert(mapOf(
                     "email" to email,
                     "user_id" to userId,
-                    "reason" to "حظر إداري ومسح بيانات"
+                    "reason" to "حظر نهائي ومسح شامل"
                 ))
+
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(this@AdminDashboardActivity, "تم حظر $email وحذف بياناته بنجاح", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this@AdminDashboardActivity, "تم حظر $email ومسح بياناته", Toast.LENGTH_SHORT).show()
                     loadAllData() 
                 }
             } catch (e: Exception) {
@@ -178,7 +190,9 @@ class AdminDashboardActivity : AppCompatActivity() {
             override fun afterTextChanged(s: Editable?) {
                 val q = s.toString().lowercase().trim()
                 val filtered = allUsers.filter { 
-                    it.username.lowercase().contains(q) || (it.email?.lowercase()?.contains(q) ?: false)
+                    val uName = it.username.lowercase()
+                    val uEmail = it.email?.lowercase() ?: ""
+                    uName.contains(q) || uEmail.contains(q)
                 }
                 displayData(filtered)
             }
