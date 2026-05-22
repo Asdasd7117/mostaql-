@@ -93,7 +93,7 @@ class AdminDashboardActivity : AppCompatActivity() {
             })
 
             val uProjects = allProjects.filter { 
-                val pUserId = it.userId ?: it.user_id ?: ""
+                val pUserId = it.userId ?: ""
                 pUserId.trim().lowercase() == targetUserId.trim().lowercase() && targetUserId.isNotBlank()
             }
             
@@ -112,7 +112,7 @@ class AdminDashboardActivity : AppCompatActivity() {
             }
 
             val uComments = allComments.filter { 
-                val cUserId = it["user_id"]?.toString() ?: it["userId"]?.toString() ?: ""
+                val cUserId = it["user_id"]?.toString() ?: ""
                 cUserId.trim().lowercase() == targetUserId.trim().lowercase() && targetUserId.isNotBlank()
             }
             
@@ -120,7 +120,7 @@ class AdminDashboardActivity : AppCompatActivity() {
                 userCard.addView(TextView(this).apply { text = "التعليقات:"; setTypeface(null, Typeface.BOLD); setPadding(0, 10, 0, 0) })
                 uComments.forEach { c ->
                     val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-                    row.addView(TextView(this).apply { text = "💬 ${c["comment_text"] ?: c["commentText"] ?: ""}"; layoutParams = LinearLayout.LayoutParams(0, -2, 1f) })
+                    row.addView(TextView(this).apply { text = "💬 ${c["comment_text"] ?: ""}"; layoutParams = LinearLayout.LayoutParams(0, -2, 1f) })
                     row.addView(Button(this).apply { 
                         text = "حذف"
                         textSize = 10f
