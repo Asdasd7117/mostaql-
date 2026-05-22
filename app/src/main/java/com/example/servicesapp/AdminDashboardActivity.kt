@@ -75,7 +75,7 @@ class AdminDashboardActivity : AppCompatActivity() {
                 setBackgroundResource(android.R.drawable.dialog_holo_light_frame)
             }
 
-            val targetUserId = user.user_id ?: user.userId ?: ""
+            val targetUserId = user.userId
             val targetEmail = user.email ?: ""
             val displayEmail = if (targetEmail.isNotBlank()) targetEmail else "لا يوجد إيميل مسجل"
             
@@ -93,8 +93,7 @@ class AdminDashboardActivity : AppCompatActivity() {
             })
 
             val uProjects = allProjects.filter { 
-                val pUserId = it.user_id ?: it.userId ?: ""
-                pUserId.lowercase() == targetUserId.lowercase() && targetUserId.isNotBlank()
+                it.userId.lowercase() == targetUserId.lowercase()
             }
             
             if (uProjects.isNotEmpty()) {
