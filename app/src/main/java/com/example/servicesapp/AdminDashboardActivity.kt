@@ -12,7 +12,7 @@ import com.example.servicesapp.R
 import com.example.servicesapp.SupabaseClient
 import com.example.servicesapp.data.AdminRepository
 import com.example.servicesapp.models.Project
-import com.example.servicesapp.models.UserProfile
+import com.example.servicesapp.profile.UserProfile
 import com.example.servicesapp.utils.DeviceUtils
 import io.github.jan.supabase.gotrue.auth
 import io.github.jan.supabase.postgrest.from
@@ -75,12 +75,12 @@ class AdminDashboardActivity : AppCompatActivity() {
                 setBackgroundResource(android.R.drawable.dialog_holo_light_frame)
             }
 
-            val targetUserId = user.userId
+            val targetUserId = user.user_id ?: ""
             val targetEmail = user.email ?: ""
             val displayEmail = if (targetEmail.isNotBlank()) targetEmail else "لا يوجد إيميل مسجل"
             
             userCard.addView(TextView(this).apply {
-                text = "المستخدم: ${user.username}"
+                text = "المستخدم: ${user.username ?: "بدون اسم"}"
                 textSize = 18f
                 setTypeface(null, Typeface.BOLD)
                 setTextColor(android.graphics.Color.BLUE)
@@ -93,7 +93,8 @@ class AdminDashboardActivity : AppCompatActivity() {
             })
 
             val uProjects = allProjects.filter { 
-                it.userId.lowercase() == targetUserId.lowercase()
+                val pUserId = it.userId ?: it.user_id ?: ""
+                pUserId.trim().lowercase() == targetUserId.trim().lowercase() && targetUserId.isNotBlank()
             }
             
             if (uProjects.isNotEmpty()) {
@@ -112,7 +113,7 @@ class AdminDashboardActivity : AppCompatActivity() {
 
             val uComments = allComments.filter { 
                 val cUserId = it["user_id"]?.toString() ?: it["userId"]?.toString() ?: ""
-                cUserId.lowercase() == targetUserId.lowercase() && targetUserId.isNotBlank()
+                cUserId.trim().lowercase() == targetUserId.trim().lowercase() && targetUserId.isNotBlank()
             }
             
             if (uComments.isNotEmpty()) {
@@ -135,7 +136,7 @@ class AdminDashboardActivity : AppCompatActivity() {
                 setTextColor(android.graphics.Color.WHITE)
                 setOnClickListener { 
                     if (targetEmail.isBlank()) {
-                        Toast.makeText(this@AdminDashboardActivity, "الإيميل مفقود", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this@AdminDashboardActivity, "الإيميل مفقود للبروفايل الحالي", Toast.LENGTH_SHORT).show()
                     } else {
                         banUserByEmail(targetEmail, targetUserId)
                     }
@@ -150,6 +151,10 @@ class AdminDashboardActivity : AppCompatActivity() {
         if (userId.isBlank()) return
         lifecycleScope.launch {
             try {
+                SupabaseClient.client.from("user_profiles").delete {
+                    filter { eq("user_id", userId) }
+                }
+
                 SupabaseClient.client.from("projects").delete {
                     filter { eq("user_id", userId) }
                 }
@@ -161,11 +166,11 @@ class AdminDashboardActivity : AppCompatActivity() {
                 SupabaseClient.client.from("banned_users").insert(mapOf(
                     "email" to email,
                     "user_id" to userId,
-                    "reason" to "حظر نهائي ومسح شامل"
+                    "reason" to "حظر نهائي ومسح شامل لجميع البيانات"
                 ))
 
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(this@AdminDashboardActivity, "تم حظر $email ومسح بياناته", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this@AdminDashboardActivity, "تم حظر $email ومسح كافة بياناته نهائياً", Toast.LENGTH_SHORT).show()
                     loadAllData() 
                 }
             } catch (e: Exception) {
@@ -189,8 +194,8 @@ class AdminDashboardActivity : AppCompatActivity() {
             override fun afterTextChanged(s: Editable?) {
                 val q = s.toString().lowercase().trim()
                 val filtered = allUsers.filter { 
-                    val uName = it.username.lowercase()
-                    val uEmail = it.email?.lowercase() ?: ""
+                    val uName = (it.username ?: "").lowercase()
+                    val uEmail = (it.email ?: "").lowercase()
                     uName.contains(q) || uEmail.contains(q)
                 }
                 displayData(filtered)
