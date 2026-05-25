@@ -209,7 +209,7 @@ class MainActivity : AppCompatActivity() {
                 }
                 R.id.catDesigns -> {
                     selectedCategory = "تصاميم وشعارات"
-                    Toast.makeText(this, "تم اختيار: $selectedCategory", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, "تم اختيار: $selectedCategory", Toast.makeText(this, "تم اختيار: $selectedCategory", Toast.LENGTH_SHORT).show()
                     loadProjectsByCategory(selectedCategory)
                     drawerLayout.closeDrawer(GravityCompat.START)
                     true
@@ -262,29 +262,9 @@ class MainActivity : AppCompatActivity() {
                             setPadding(0, 80, 0, 80)
                         })
                     } else {
-                        var currentRow: LinearLayout? = null
-                        
-                        filteredProjects.forEachIndexed { index, project ->
-                            if (index % 2 == 0) {
-                                currentRow = LinearLayout(this@MainActivity).apply {
-                                    orientation = LinearLayout.HORIZONTAL
-                                    layoutParams = LinearLayout.LayoutParams(
-                                        LinearLayout.LayoutParams.MATCH_PARENT,
-                                        LinearLayout.LayoutParams.WRAP_CONTENT
-                                    )
-                                    weightSum = 2f
-                                }
-                                projectsContainer.addView(currentRow)
-                            }
-                            
+                        filteredProjects.forEach { project ->
                             val card = createProjectCard(project)
-                            currentRow?.addView(card)
-                            
-                            if (index == filteredProjects.size - 1 && index % 2 == 0) {
-                                currentRow?.addView(View(this@MainActivity).apply {
-                                    layoutParams = LinearLayout.LayoutParams(0, 1, 1f)
-                                })
-                            }
+                            projectsContainer.addView(card)
                         }
                     }
                 }
@@ -299,9 +279,12 @@ class MainActivity : AppCompatActivity() {
     private fun createProjectCard(project: Project): View {
         val card = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(20, 16, 20, 16)
-            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
-                setMargins(10, 10, 10, 10)
+            setPadding(24, 20, 24, 20)
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, 
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                setMargins(16, 12, 16, 12)
             }
             setBackgroundResource(R.drawable.project_card_background)
             elevation = 6f
@@ -319,7 +302,7 @@ class MainActivity : AppCompatActivity() {
 
         card.addView(TextView(this).apply {
             text = project.name
-            textSize = 17f
+            textSize = 18f
             setTextColor(Color.WHITE)
             setTypeface(null, android.graphics.Typeface.BOLD)
             maxLines = 1
@@ -327,15 +310,15 @@ class MainActivity : AppCompatActivity() {
         
         card.addView(TextView(this).apply {
             text = project.description
-            textSize = 13f
-            setTextColor(Color.argb(180, 255, 255, 255))
-            setPadding(0, 6, 0, 6)
-            maxLines = 2
+            textSize = 14f
+            setTextColor(Color.argb(200, 255, 255, 255))
+            setPadding(0, 8, 0, 8)
+            maxLines = 3
         })
         
         card.addView(TextView(this).apply {
             text = "🔧 ${project.language}"
-            textSize = 12f
+            textSize = 13f
             setTextColor(Color.YELLOW)
         })
         
