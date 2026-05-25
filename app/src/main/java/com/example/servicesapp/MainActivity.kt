@@ -56,20 +56,27 @@ class MainActivity : AppCompatActivity() {
         }
 
         lifecycleScope.launch {
-            SupabaseClient.client.auth.loadFromStorage()
-            if (SupabaseClient.client.auth.currentSessionOrNull() == null) {
+            try {
+                SupabaseClient.client.auth.loadFromStorage()
+                val session = SupabaseClient.client.auth.currentSessionOrNull()
+                
+                if (session == null) {
+                    startActivity(Intent(this@MainActivity, LoginActivity::class.java))
+                    finish()
+                    return@launch
+                }
+
+                val email = session.user?.email ?: "user@example.com"
+                val userName = email.split("@").firstOrNull() ?: "مستخدم"
+                
+                updateNavigationView(email, userName)
+                setupNavigation()
+                loadProjectsByCategory(selectedCategory)
+            } catch (e: Exception) {
+                // معالجة فشل التحقق من الجلسة في حال عدم وجود إنترنت
                 startActivity(Intent(this@MainActivity, LoginActivity::class.java))
                 finish()
-                return@launch
             }
-
-            val session = SupabaseClient.client.auth.currentSessionOrNull()
-            val email = session?.user?.email ?: "user@example.com"
-            val userName = email.split("@").firstOrNull() ?: "مستخدم"
-            
-            updateNavigationView(email, userName)
-            setupNavigation()
-            loadProjectsByCategory(selectedCategory)
         }
     }
 
@@ -93,19 +100,22 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateNavigationView(email: String, userName: String) {
-        val header = navigationView.getHeaderView(0)
-        if (header == null) return
+        val header = navigationView.getHeaderView(0) ?: return
 
         val tvUserName = header.findViewById<TextView>(R.id.tvUserName)
         val tvUserEmail = header.findViewById<TextView>(R.id.tvUserEmail)
 
-        lifecycleScope.launch {
+        // إدخال الافتراضيات أولاً في الواجهة الرئيسية لمنع التأخير
+        tvUserName?.text = userName
+        tvUserEmail?.text = email
+
+        lifecycleScope.launch(Dispatchers.IO) {
             try {
                 val session = SupabaseClient.client.auth.currentSessionOrNull()
                 val userId = session?.user?.id
                 
                 var displayName = userName
-                var displayEmail = email
+                val displayEmail = session?.user?.email ?: email
 
                 if (userId != null) {
                     val profiles = SupabaseClient.client
@@ -117,22 +127,25 @@ class MainActivity : AppCompatActivity() {
                     
                     currentUserProfile = profiles.firstOrNull()
                     
-                    if (currentUserProfile?.username != null && currentUserProfile!!.username!!.isNotBlank()) {
-                        displayName = currentUserProfile!!.username!!
-                    } else {
+                    currentUserProfile?.username?.let {
+                        if (it.isNotBlank()) {
+                            displayName = it
+                        } else {
+                            displayName = "يرجى إعداد اسم مستخدم ⚠️"
+                        }
+                    } ?: run {
                         displayName = "يرجى إعداد اسم مستخدم ⚠️"
                     }
-                    displayEmail = session.user?.email ?: email
                 }
                 
                 withContext(Dispatchers.Main) {
                     tvUserName?.text = displayName
+                    tvUserEmail?.text = displayEmail
                     if (currentUserProfile?.username.isNullOrBlank()) {
                         tvUserName?.setTextColor(Color.RED)
                     } else {
                         tvUserName?.setTextColor(Color.BLACK) 
                     }
-                    tvUserEmail?.text = displayEmail
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
@@ -186,7 +199,9 @@ class MainActivity : AppCompatActivity() {
                 R.id.navLogout -> {
                     drawerLayout.closeDrawer(GravityCompat.START)
                     lifecycleScope.launch {
-                        SupabaseClient.client.auth.signOut()
+                        try {
+                            SupabaseClient.client.auth.signOut()
+                        } catch (e: Exception) { analytics/fallback }
                         startActivity(Intent(this@MainActivity, LoginActivity::class.java))
                         finish()
                     }
@@ -198,7 +213,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun loadProjectsByCategory(category: String) {
-        lifecycleScope.launch {
+        lifecycleScope.launch(Dispatchers.IO) {
             try {
                 val allProjects = ProjectRepository.getAllProjects()
                 
@@ -207,9 +222,12 @@ class MainActivity : AppCompatActivity() {
                 } else {
                     allProjects.filter { project -> 
                         val projectLang = project.language.trim().lowercase()
+                        val projectCategory = (project as? any)?.let { category.trim().lowercase() } ?: "" 
                         val targetCat = category.trim().lowercase()
                         
-                        projectLang.contains(targetCat) || targetCat.contains(projectLang)
+                        // الفلترة الذكية تشمل فحص حقل اللغة وحقل القسم التابع للمشروع
+                        projectLang.contains(targetCat) || targetCat.contains(projectLang) || 
+                        projectCategory.contains(targetCat)
                     }
                 }
 
@@ -309,7 +327,9 @@ class MainActivity : AppCompatActivity() {
         lifecycleScope.launch {
             val session = SupabaseClient.client.auth.currentSessionOrNull()
             if (session != null) {
-                updateNavigationView(session.user?.email ?: "", "")
+                val email = session.user?.email ?: ""
+                val currentName = currentUserProfile?.username ?: email.split("@").firstOrNull() ?: "مستخدم"
+                updateNavigationView(email, currentName)
                 loadProjectsByCategory(selectedCategory)
             }
         }
