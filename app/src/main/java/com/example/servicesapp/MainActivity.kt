@@ -6,6 +6,7 @@ import android.os.Bundle
 import android.view.Gravity
 import android.view.View
 import android.widget.Button
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
@@ -35,7 +36,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var navigationView: NavigationView
     private lateinit var projectsContainer: LinearLayout
     private lateinit var btnMyProjects: Button
-    private lateinit var btnMenu: LinearLayout
+    private lateinit var btnCategories: ImageView
 
     private var selectedCategory: String = "الكل"
     private var currentUserProfile: UserProfile? = null
@@ -48,7 +49,11 @@ class MainActivity : AppCompatActivity() {
         navigationView = findViewById(R.id.navigationView)
         projectsContainer = findViewById(R.id.projectsContainer)
         btnMyProjects = findViewById(R.id.btnMyProjects)
-        btnMenu = findViewById(R.id.btnMenu)
+        btnCategories = findViewById(R.id.btnCategories)
+
+        btnCategories.setOnClickListener { view ->
+            showCategoriesMenu(view)
+        }
 
         lifecycleScope.launch {
             SupabaseClient.client.auth.loadFromStorage()
@@ -59,10 +64,12 @@ class MainActivity : AppCompatActivity() {
             }
 
             val session = SupabaseClient.client.auth.currentSessionOrNull()
-            val email = session?.user?.email ?: ""
+            val email = session?.user?.email ?: "user@example.com"
+            val userName = email.split("@").firstOrNull() ?: "مستخدم"
             
-            updateNavigationAndLoadData(email)
+            updateNavigationView(email, userName)
             setupNavigation()
+            loadProjectsByCategory(selectedCategory)
         }
     }
 
@@ -85,7 +92,7 @@ class MainActivity : AppCompatActivity() {
         popupMenu.show()
     }
 
-    private fun updateNavigationAndLoadData(email: String) {
+    private fun updateNavigationView(email: String, userName: String) {
         val header = navigationView.getHeaderView(0)
         if (header == null) return
 
@@ -97,8 +104,8 @@ class MainActivity : AppCompatActivity() {
                 val session = SupabaseClient.client.auth.currentSessionOrNull()
                 val userId = session?.user?.id
                 
-                var displayName = ""
-                val displayEmail = session?.user?.email ?: email
+                var displayName = userName
+                var displayEmail = email
 
                 if (userId != null) {
                     val profiles = SupabaseClient.client
@@ -110,17 +117,12 @@ class MainActivity : AppCompatActivity() {
                     
                     currentUserProfile = profiles.firstOrNull()
                     
-                    val dbUsername = currentUserProfile?.username?.trim()
-                    
-                    if (!dbUsername.isNullOrBlank() && dbUsername != "مستخدم" && !dbUsername.contains("يرجى")) {
-                        displayName = dbUsername
+                    if (currentUserProfile?.username != null && currentUserProfile!!.username!!.isNotBlank()) {
+                        displayName = currentUserProfile!!.username!!
                     } else {
                         displayName = "يرجى إعداد اسم مستخدم ⚠️"
-                        currentUserProfile?.username = ""
                     }
-                } else {
-                    displayName = "يرجى إعداد اسم مستخدم ⚠️"
-                    currentUserProfile = null
+                    displayEmail = session.user?.email ?: email
                 }
                 
                 withContext(Dispatchers.Main) {
@@ -131,30 +133,18 @@ class MainActivity : AppCompatActivity() {
                         tvUserName?.setTextColor(Color.BLACK) 
                     }
                     tvUserEmail?.text = displayEmail
-                    loadProjectsByCategory(selectedCategory)
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
-                    tvUserName?.text = "يرجى إعداد اسم مستخدم ⚠️"
-                    tvUserName?.setTextColor(Color.RED)
+                    tvUserName?.text = userName
                     tvUserEmail?.text = email
-                    currentUserProfile = null
-                    loadProjectsByCategory(selectedCategory)
                 }
             }
         }
     }
 
-    private fun isUsernameValid(): Boolean {
-        val name = currentUserProfile?.username?.trim()
-        if (name.isNullOrBlank()) return false
-        if (name == "مستخدم") return false
-        if (name.contains("يرجى")) return false
-        return true
-    }
-
-    private fun checkUsernameAndNavigate(destination: Class<*>, gravityToClose: Int, extras: (Intent) -> Unit = {}) {
-        if (!isUsernameValid()) {
+    private fun checkUsernameAndNavigate(destination: Class<*>, extras: (Intent) -> Unit = {}) {
+        if (currentUserProfile?.username.isNullOrBlank()) {
             Toast.makeText(this, "⚠️ يجب تعيين اسم مستخدم في ملفك الشخصي أولاً!", Toast.LENGTH_LONG).show()
             startActivity(Intent(this, UserProfileActivity::class.java))
         } else {
@@ -162,11 +152,11 @@ class MainActivity : AppCompatActivity() {
             extras(intent)
             startActivity(intent)
         }
-        drawerLayout.closeDrawer(gravityToClose)
+        drawerLayout.closeDrawer(GravityCompat.START)
     }
 
     private fun setupNavigation() {
-        btnMenu.setOnClickListener {
+        findViewById<ImageView>(R.id.btnMenu).setOnClickListener {
             drawerLayout.openDrawer(GravityCompat.START)
         }
 
@@ -178,11 +168,11 @@ class MainActivity : AppCompatActivity() {
                     true
                 }
                 R.id.navChats -> {
-                    checkUsernameAndNavigate(ChatListActivity::class.java, GravityCompat.START)
+                    checkUsernameAndNavigate(ChatListActivity::class.java)
                     true
                 }
                 R.id.navMyProjects -> {
-                    checkUsernameAndNavigate(UserProjectsActivity::class.java, GravityCompat.START) { intent ->
+                    checkUsernameAndNavigate(UserProjectsActivity::class.java) { intent ->
                         val userId = SupabaseClient.client.auth.currentSessionOrNull()?.user?.id?.toString()
                         intent.putExtra("userId", userId)
                         intent.putExtra("ownerName", currentUserProfile?.username ?: "المستخدم")
@@ -190,49 +180,7 @@ class MainActivity : AppCompatActivity() {
                     true
                 }
                 R.id.navAddProject -> {
-                    checkUsernameAndNavigate(com.example.servicesapp.projects.AddProjectActivity::class.java, GravityCompat.START)
-                    true
-                }
-                R.id.catAll -> {
-                    selectedCategory = "الكل"
-                    Toast.makeText(this, "تم اختيار: $selectedCategory", Toast.LENGTH_SHORT).show()
-                    loadProjectsByCategory(selectedCategory)
-                    drawerLayout.closeDrawer(GravityCompat.START)
-                    true
-                }
-                R.id.catAndroidWeb -> {
-                    selectedCategory = "مشاريع تطبيقات الاندرويد والويب"
-                    Toast.makeText(this, "تم اختيار: $selectedCategory", Toast.LENGTH_SHORT).show()
-                    loadProjectsByCategory(selectedCategory)
-                    drawerLayout.closeDrawer(GravityCompat.START)
-                    true
-                }
-                R.id.catWebsites -> {
-                    selectedCategory = "مشاريع مواقع ويب"
-                    Toast.makeText(this, "تم اختيار: $selectedCategory", Toast.LENGTH_SHORT).show()
-                    loadProjectsByCategory(selectedCategory)
-                    drawerLayout.closeDrawer(GravityCompat.START)
-                    true
-                }
-                R.id.catArticles -> {
-                    selectedCategory = "كتابة مقالات"
-                    Toast.makeText(this, "تم اختيار: $selectedCategory", Toast.LENGTH_SHORT).show()
-                    loadProjectsByCategory(selectedCategory)
-                    drawerLayout.closeDrawer(GravityCompat.START)
-                    true
-                }
-                R.id.catDesigns -> {
-                    selectedCategory = "تصاميم وشعارات"
-                    Toast.makeText(this, "تم اختيار: $selectedCategory", Toast.LENGTH_SHORT).show()
-                    loadProjectsByCategory(selectedCategory)
-                    drawerLayout.closeDrawer(GravityCompat.START)
-                    true
-                }
-                R.id.catUploadAndroid -> {
-                    selectedCategory = "رفع تطبيقات أندرويد"
-                    Toast.makeText(this, "تم اختيار: $selectedCategory", Toast.LENGTH_SHORT).show()
-                    loadProjectsByCategory(selectedCategory)
-                    drawerLayout.closeDrawer(GravityCompat.START)
+                    checkUsernameAndNavigate(com.example.servicesapp.projects.AddProjectActivity::class.java)
                     true
                 }
                 R.id.navLogout -> {
@@ -276,15 +224,35 @@ class MainActivity : AppCompatActivity() {
                             setPadding(0, 80, 0, 80)
                         })
                     } else {
-                        filteredProjects.forEach { project ->
+                        var currentRow: LinearLayout? = null
+                        
+                        filteredProjects.forEachIndexed { index, project ->
+                            if (index % 2 == 0) {
+                                currentRow = LinearLayout(this@MainActivity).apply {
+                                    orientation = LinearLayout.HORIZONTAL
+                                    layoutParams = LinearLayout.LayoutParams(
+                                        LinearLayout.LayoutParams.MATCH_PARENT,
+                                        LinearLayout.LayoutParams.WRAP_CONTENT
+                                    )
+                                    weightSum = 2f
+                                }
+                                projectsContainer.addView(currentRow)
+                            }
+                            
                             val card = createProjectCard(project)
-                            projectsContainer.addView(card)
+                            currentRow?.addView(card)
+                            
+                            if (index == filteredProjects.size - 1 && index % 2 == 0) {
+                                currentRow?.addView(View(this@MainActivity).apply {
+                                    layoutParams = LinearLayout.LayoutParams(0, 1, 1f)
+                                })
+                            }
                         }
                     }
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(this@MainActivity, "خطأ في تحميل المشاريع: ${e.message}", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this@MainActivity, "خطأ في التصفية: ${e.message}", Toast.LENGTH_SHORT).show()
                 }
             }
         }
@@ -293,12 +261,9 @@ class MainActivity : AppCompatActivity() {
     private fun createProjectCard(project: Project): View {
         val card = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(24, 20, 24, 20)
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, 
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            ).apply {
-                setMargins(16, 12, 16, 12)
+            setPadding(20, 16, 20, 16)
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
+                setMargins(10, 10, 10, 10)
             }
             setBackgroundResource(R.drawable.project_card_background)
             elevation = 6f
@@ -316,7 +281,7 @@ class MainActivity : AppCompatActivity() {
 
         card.addView(TextView(this).apply {
             text = project.name
-            textSize = 18f
+            textSize = 17f
             setTextColor(Color.WHITE)
             setTypeface(null, android.graphics.Typeface.BOLD)
             maxLines = 1
@@ -324,15 +289,15 @@ class MainActivity : AppCompatActivity() {
         
         card.addView(TextView(this).apply {
             text = project.description
-            textSize = 14f
-            setTextColor(Color.argb(200, 255, 255, 255))
-            setPadding(0, 8, 0, 8)
-            maxLines = 3
+            textSize = 13f
+            setTextColor(Color.argb(180, 255, 255, 255))
+            setPadding(0, 6, 0, 6)
+            maxLines = 2
         })
         
         card.addView(TextView(this).apply {
             text = "🔧 ${project.language}"
-            textSize = 13f
+            textSize = 12f
             setTextColor(Color.YELLOW)
         })
         
@@ -344,7 +309,8 @@ class MainActivity : AppCompatActivity() {
         lifecycleScope.launch {
             val session = SupabaseClient.client.auth.currentSessionOrNull()
             if (session != null) {
-                updateNavigationAndLoadData(session.user?.email ?: "")
+                updateNavigationView(session.user?.email ?: "", "")
+                loadProjectsByCategory(selectedCategory)
             }
         }
     }
