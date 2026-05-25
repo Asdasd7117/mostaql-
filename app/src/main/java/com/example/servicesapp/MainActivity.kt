@@ -209,7 +209,7 @@ class MainActivity : AppCompatActivity() {
                 }
                 R.id.catDesigns -> {
                     selectedCategory = "تصاميم وشعارات"
-                    Toast.makeText(this, "تم اختيار: $selectedCategory", Toast.makeText(this, "تم اختيار: $selectedCategory", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, "تم اختيار: $selectedCategory", Toast.LENGTH_SHORT).show()
                     loadProjectsByCategory(selectedCategory)
                     drawerLayout.closeDrawer(GravityCompat.START)
                     true
