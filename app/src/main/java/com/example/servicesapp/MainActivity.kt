@@ -195,36 +195,42 @@ class MainActivity : AppCompatActivity() {
                 }
                 R.id.catAll -> {
                     selectedCategory = "الكل"
+                    Toast.makeText(this, "تم اختيار: $selectedCategory", Toast.LENGTH_SHORT).show()
                     loadProjectsByCategory(selectedCategory)
                     drawerLayout.closeDrawer(GravityCompat.START)
                     true
                 }
                 R.id.catAndroidWeb -> {
                     selectedCategory = "مشاريع تطبيقات الاندرويد والويب"
+                    Toast.makeText(this, "تم اختيار: $selectedCategory", Toast.LENGTH_SHORT).show()
                     loadProjectsByCategory(selectedCategory)
                     drawerLayout.closeDrawer(GravityCompat.START)
                     true
                 }
                 R.id.catWebsites -> {
                     selectedCategory = "مشاريع مواقع ويب"
+                    Toast.makeText(this, "تم اختيار: $selectedCategory", Toast.LENGTH_SHORT).show()
                     loadProjectsByCategory(selectedCategory)
                     drawerLayout.closeDrawer(GravityCompat.START)
                     true
                 }
                 R.id.catArticles -> {
                     selectedCategory = "كتابة مقالات"
+                    Toast.makeText(this, "تم اختيار: $selectedCategory", Toast.LENGTH_SHORT).show()
                     loadProjectsByCategory(selectedCategory)
                     drawerLayout.closeDrawer(GravityCompat.START)
                     true
                 }
                 R.id.catDesigns -> {
                     selectedCategory = "تصاميم وشعارات"
+                    Toast.makeText(this, "تم اختيار: $selectedCategory", Toast.LENGTH_SHORT).show()
                     loadProjectsByCategory(selectedCategory)
                     drawerLayout.closeDrawer(GravityCompat.START)
                     true
                 }
                 R.id.catUploadAndroid -> {
                     selectedCategory = "رفع تطبيقات أندرويد"
+                    Toast.makeText(this, "تم اختيار: $selectedCategory", Toast.LENGTH_SHORT).show()
                     loadProjectsByCategory(selectedCategory)
                     drawerLayout.closeDrawer(GravityCompat.START)
                     true
