@@ -59,12 +59,10 @@ class MainActivity : AppCompatActivity() {
             }
 
             val session = SupabaseClient.client.auth.currentSessionOrNull()
-            val email = session?.user?.email ?: "user@example.com"
-            val userName = email.split("@").firstOrNull() ?: "مستخدم"
+            val email = session?.user?.email ?: ""
             
-            updateNavigationView(email, userName)
+            updateNavigationAndLoadData(email)
             setupNavigation()
-            loadProjectsByCategory(selectedCategory)
         }
     }
 
@@ -87,7 +85,7 @@ class MainActivity : AppCompatActivity() {
         popupMenu.show()
     }
 
-    private fun updateNavigationView(email: String, userName: String) {
+    private fun updateNavigationAndLoadData(email: String) {
         val header = navigationView.getHeaderView(0)
         if (header == null) return
 
@@ -99,8 +97,8 @@ class MainActivity : AppCompatActivity() {
                 val session = SupabaseClient.client.auth.currentSessionOrNull()
                 val userId = session?.user?.id
                 
-                var displayName = userName
-                var displayEmail = email
+                var displayName = ""
+                val displayEmail = session?.user?.email ?: email
 
                 if (userId != null) {
                     val profiles = SupabaseClient.client
@@ -112,12 +110,17 @@ class MainActivity : AppCompatActivity() {
                     
                     currentUserProfile = profiles.firstOrNull()
                     
-                    if (currentUserProfile?.username != null && currentUserProfile!!.username!!.isNotBlank()) {
-                        displayName = currentUserProfile!!.username!!
+                    val dbUsername = currentUserProfile?.username?.trim()
+                    
+                    if (!dbUsername.isNullOrBlank() && dbUsername != "مستخدم" && !dbUsername.contains("يرجى")) {
+                        displayName = dbUsername
                     } else {
                         displayName = "يرجى إعداد اسم مستخدم ⚠️"
+                        currentUserProfile?.username = ""
                     }
-                    displayEmail = session.user?.email ?: email
+                } else {
+                    displayName = "يرجى إعداد اسم مستخدم ⚠️"
+                    currentUserProfile = null
                 }
                 
                 withContext(Dispatchers.Main) {
@@ -128,18 +131,30 @@ class MainActivity : AppCompatActivity() {
                         tvUserName?.setTextColor(Color.BLACK) 
                     }
                     tvUserEmail?.text = displayEmail
+                    loadProjectsByCategory(selectedCategory)
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
-                    tvUserName?.text = userName
+                    tvUserName?.text = "يرجى إعداد اسم مستخدم ⚠️"
+                    tvUserName?.setTextColor(Color.RED)
                     tvUserEmail?.text = email
+                    currentUserProfile = null
+                    loadProjectsByCategory(selectedCategory)
                 }
             }
         }
     }
 
+    private fun isUsernameValid(): Boolean {
+        val name = currentUserProfile?.username?.trim()
+        if (name.isNullOrBlank()) return false
+        if (name == "مستخدم") return false
+        if (name.contains("يرجى")) return false
+        return true
+    }
+
     private fun checkUsernameAndNavigate(destination: Class<*>, gravityToClose: Int, extras: (Intent) -> Unit = {}) {
-        if (currentUserProfile?.username.isNullOrBlank()) {
+        if (!isUsernameValid()) {
             Toast.makeText(this, "⚠️ يجب تعيين اسم مستخدم في ملفك الشخصي أولاً!", Toast.LENGTH_LONG).show()
             startActivity(Intent(this, UserProfileActivity::class.java))
         } else {
@@ -152,7 +167,6 @@ class MainActivity : AppCompatActivity() {
 
     private fun setupNavigation() {
         btnMenu.setOnClickListener {
-            Toast.makeText(this, "القائمة", Toast.LENGTH_SHORT).show()
             drawerLayout.openDrawer(GravityCompat.START)
         }
 
@@ -181,42 +195,36 @@ class MainActivity : AppCompatActivity() {
                 }
                 R.id.catAll -> {
                     selectedCategory = "الكل"
-                    Toast.makeText(this, "تم اختيار: $selectedCategory", Toast.LENGTH_SHORT).show()
                     loadProjectsByCategory(selectedCategory)
                     drawerLayout.closeDrawer(GravityCompat.START)
                     true
                 }
                 R.id.catAndroidWeb -> {
                     selectedCategory = "مشاريع تطبيقات الاندرويد والويب"
-                    Toast.makeText(this, "تم اختيار: $selectedCategory", Toast.LENGTH_SHORT).show()
                     loadProjectsByCategory(selectedCategory)
                     drawerLayout.closeDrawer(GravityCompat.START)
                     true
                 }
                 R.id.catWebsites -> {
                     selectedCategory = "مشاريع مواقع ويب"
-                    Toast.makeText(this, "تم اختيار: $selectedCategory", Toast.LENGTH_SHORT).show()
                     loadProjectsByCategory(selectedCategory)
                     drawerLayout.closeDrawer(GravityCompat.START)
                     true
                 }
                 R.id.catArticles -> {
                     selectedCategory = "كتابة مقالات"
-                    Toast.makeText(this, "تم اختيار: $selectedCategory", Toast.LENGTH_SHORT).show()
                     loadProjectsByCategory(selectedCategory)
                     drawerLayout.closeDrawer(GravityCompat.START)
                     true
                 }
                 R.id.catDesigns -> {
                     selectedCategory = "تصاميم وشعارات"
-                    Toast.makeText(this, "تم اختيار: $selectedCategory", Toast.LENGTH_SHORT).show()
                     loadProjectsByCategory(selectedCategory)
                     drawerLayout.closeDrawer(GravityCompat.START)
                     true
                 }
                 R.id.catUploadAndroid -> {
                     selectedCategory = "رفع تطبيقات أندرويد"
-                    Toast.makeText(this, "تم اختيار: $selectedCategory", Toast.LENGTH_SHORT).show()
                     loadProjectsByCategory(selectedCategory)
                     drawerLayout.closeDrawer(GravityCompat.START)
                     true
@@ -270,7 +278,7 @@ class MainActivity : AppCompatActivity() {
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(this@MainActivity, "خطأ في التصفية: ${e.message}", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this@MainActivity, "خطأ في تحميل المشاريع: ${e.message}", Toast.LENGTH_SHORT).show()
                 }
             }
         }
@@ -330,8 +338,7 @@ class MainActivity : AppCompatActivity() {
         lifecycleScope.launch {
             val session = SupabaseClient.client.auth.currentSessionOrNull()
             if (session != null) {
-                updateNavigationView(session.user?.email ?: "", "")
-                loadProjectsByCategory(selectedCategory)
+                updateNavigationAndLoadData(session.user?.email ?: "")
             }
         }
     }
