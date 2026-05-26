@@ -18,15 +18,13 @@ import kotlinx.serialization.Serializable
 data class UserProfile(
     val user_id: String? = null,
     val username: String? = null,
-    val username_changed: Boolean = false,
-    val email: String? = null
+    val username_changed: Boolean = false
 )
 
 class UserProfileActivity : AppCompatActivity() {
 
     private lateinit var etUsername: EditText
     private lateinit var btnSave: Button
-    private var currentUserEmail: String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -73,7 +71,6 @@ class UserProfileActivity : AppCompatActivity() {
             try {
                 val session = SupabaseClient.client.auth.currentSessionOrNull()
                 val userId = session?.user?.id
-                currentUserEmail = session?.user?.email
                 
                 if (userId != null) {
                     val profiles = SupabaseClient.client
@@ -116,9 +113,6 @@ class UserProfileActivity : AppCompatActivity() {
             try {
                 val session = SupabaseClient.client.auth.currentSessionOrNull()
                 val userId = session?.user?.id
-                if (currentUserEmail == null) {
-                    currentUserEmail = session?.user?.email
-                }
                 
                 if (userId != null) {
                     val profiles = SupabaseClient.client
@@ -139,13 +133,14 @@ class UserProfileActivity : AppCompatActivity() {
                     val updatedProfile = UserProfile(
                         user_id = userId,
                         username = usernameInput,
-                        username_changed = true,
-                        email = currentUserEmail ?: existingProfile?.email
+                        username_changed = true
                     )
                     
                     SupabaseClient.client
                         .from("user_profiles")
-                        .upsert(updatedProfile)
+                        .upsert(updatedProfile) {
+                            onConflict = "user_id"
+                        }
                     
                     Toast.makeText(this@UserProfileActivity, "Success", Toast.LENGTH_LONG).show()
                     finish()
