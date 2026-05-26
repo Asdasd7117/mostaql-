@@ -146,28 +146,36 @@ class MainActivity : AppCompatActivity() {
             extras(intent)
             startActivity(intent)
         }
-        drawerLayout.closeDrawer(gravityToClose)
+        if (drawerLayout.isDrawerOpen(gravityToClose)) {
+            drawerLayout.closeDrawer(gravityToClose)
+        }
     }
 
     private fun setupNavigation() {
-        findViewById<ImageView>(R.id.btnMenu).setOnClickListener {
+        val menuButton = findViewById<View>(R.id.btnMenu)
+        menuButton?.setOnClickListener {
             Toast.makeText(this, "القائمة", Toast.LENGTH_SHORT).show()
-            drawerLayout.openDrawer(GravityCompat.START)
+            if (drawerLayout.isDrawerOpen(GravityCompat.START)) {
+                drawerLayout.closeDrawer(GravityCompat.START)
+            } else {
+                drawerLayout.openDrawer(GravityCompat.START)
+            }
         }
 
         navigationView.setNavigationItemSelectedListener { menuItem ->
+            val gravity = GravityCompat.START
             when (menuItem.itemId) {
                 R.id.navUsername, R.id.navProfile -> {
                     startActivity(Intent(this@MainActivity, UserProfileActivity::class.java))
-                    drawerLayout.closeDrawer(GravityCompat.START)
+                    drawerLayout.closeDrawer(gravity)
                     true
                 }
                 R.id.navChats -> {
-                    checkUsernameAndNavigate(ChatListActivity::class.java, GravityCompat.START)
+                    checkUsernameAndNavigate(ChatListActivity::class.java, gravity)
                     true
                 }
                 R.id.navMyProjects -> {
-                    checkUsernameAndNavigate(UserProjectsActivity::class.java, GravityCompat.START) { intent ->
+                    checkUsernameAndNavigate(UserProjectsActivity::class.java, gravity) { intent ->
                         val userId = SupabaseClient.client.auth.currentSessionOrNull()?.user?.id?.toString()
                         intent.putExtra("userId", userId)
                         intent.putExtra("ownerName", currentUserProfile?.username ?: "المستخدم")
@@ -175,53 +183,53 @@ class MainActivity : AppCompatActivity() {
                     true
                 }
                 R.id.navAddProject -> {
-                    checkUsernameAndNavigate(com.example.servicesapp.projects.AddProjectActivity::class.java, GravityCompat.START)
+                    checkUsernameAndNavigate(com.example.servicesapp.projects.AddProjectActivity::class.java, gravity)
                     true
                 }
                 R.id.catAll -> {
                     selectedCategory = "الكل"
                     Toast.makeText(this, "تم اختيار: $selectedCategory", Toast.LENGTH_SHORT).show()
                     loadProjectsByCategory(selectedCategory)
-                    drawerLayout.closeDrawer(GravityCompat.START)
+                    drawerLayout.closeDrawer(gravity)
                     true
                 }
                 R.id.catAndroidWeb -> {
                     selectedCategory = "مشاريع تطبيقات الاندرويد والويب"
                     Toast.makeText(this, "تم اختيار: $selectedCategory", Toast.LENGTH_SHORT).show()
                     loadProjectsByCategory(selectedCategory)
-                    drawerLayout.closeDrawer(GravityCompat.START)
+                    drawerLayout.closeDrawer(gravity)
                     true
                 }
                 R.id.catWebsites -> {
                     selectedCategory = "مشاريع مواقع ويب"
                     Toast.makeText(this, "تم اختيار: $selectedCategory", Toast.LENGTH_SHORT).show()
                     loadProjectsByCategory(selectedCategory)
-                    drawerLayout.closeDrawer(GravityCompat.START)
+                    drawerLayout.closeDrawer(gravity)
                     true
                 }
                 R.id.catArticles -> {
                     selectedCategory = "كتابة مقالات"
                     Toast.makeText(this, "تم اختيار: $selectedCategory", Toast.LENGTH_SHORT).show()
                     loadProjectsByCategory(selectedCategory)
-                    drawerLayout.closeDrawer(GravityCompat.START)
+                    drawerLayout.closeDrawer(gravity)
                     true
                 }
                 R.id.catDesigns -> {
                     selectedCategory = "تصاميم وشعارات"
                     Toast.makeText(this, "تم اختيار: $selectedCategory", Toast.LENGTH_SHORT).show()
                     loadProjectsByCategory(selectedCategory)
-                    drawerLayout.closeDrawer(GravityCompat.START)
+                    drawerLayout.closeDrawer(gravity)
                     true
                 }
                 R.id.catUploadAndroid -> {
                     selectedCategory = "رفع تطبيقات أندرويد"
                     Toast.makeText(this, "تم اختيار: $selectedCategory", Toast.LENGTH_SHORT).show()
                     loadProjectsByCategory(selectedCategory)
-                    drawerLayout.closeDrawer(GravityCompat.START)
+                    drawerLayout.closeDrawer(gravity)
                     true
                 }
                 R.id.navLogout -> {
-                    drawerLayout.closeDrawer(GravityCompat.START)
+                    drawerLayout.closeDrawer(gravity)
                     lifecycleScope.launch {
                         SupabaseClient.client.auth.signOut()
                         startActivity(Intent(this@MainActivity, LoginActivity::class.java))
@@ -305,14 +313,19 @@ class MainActivity : AppCompatActivity() {
             setBackgroundResource(R.drawable.project_card_background)
             elevation = 6f
             setOnClickListener {
-                val intent = Intent(this@MainActivity, ProjectDetailActivity::class.java).apply {
-                    putExtra("projectId", project.id ?: 0)
-                    putExtra("projectName", project.name)
-                    putExtra("projectDescription", project.description)
-                    putExtra("projectLanguage", project.language)
-                    putExtra("projectOwnerId", project.userId)
+                if (currentUserProfile?.username.isNullOrBlank()) {
+                    Toast.makeText(context, "⚠️ يجب تعيين اسم مستخدم في ملفك الشخصي أولاً لرؤية التفاصيل والمراسلة!", Toast.LENGTH_LONG).show()
+                    startActivity(Intent(context, UserProfileActivity::class.java))
+                } else {
+                    val intent = Intent(this@MainActivity, ProjectDetailActivity::class.java).apply {
+                        putExtra("projectId", project.id ?: 0)
+                        putExtra("projectName", project.name)
+                        putExtra("projectDescription", project.description)
+                        putExtra("projectLanguage", project.language)
+                        putExtra("projectOwnerId", project.userId)
+                    }
+                    startActivity(intent)
                 }
-                startActivity(intent)
             }
         }
 
