@@ -59,9 +59,8 @@ class MainActivity : AppCompatActivity() {
 
             val session = SupabaseClient.client.auth.currentSessionOrNull()
             val email = session?.user?.email ?: "user@example.com"
-            val userName = email.split("@").firstOrNull() ?: "مستخدم"
             
-            updateNavigationView(email, userName)
+            updateNavigationView(email, "")
             setupNavigation()
             loadProjectsByCategory(selectedCategory)
         }
