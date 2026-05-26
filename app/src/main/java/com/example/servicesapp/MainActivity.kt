@@ -73,7 +73,6 @@ class MainActivity : AppCompatActivity() {
                 setupNavigation()
                 loadProjectsByCategory(selectedCategory)
             } catch (e: Exception) {
-                // معالجة فشل التحقق من الجلسة في حال عدم وجود إنترنت
                 startActivity(Intent(this@MainActivity, LoginActivity::class.java))
                 finish()
             }
@@ -105,7 +104,6 @@ class MainActivity : AppCompatActivity() {
         val tvUserName = header.findViewById<TextView>(R.id.tvUserName)
         val tvUserEmail = header.findViewById<TextView>(R.id.tvUserEmail)
 
-        // إدخال الافتراضيات أولاً في الواجهة الرئيسية لمنع التأخير
         tvUserName?.text = userName
         tvUserEmail?.text = email
 
@@ -201,7 +199,9 @@ class MainActivity : AppCompatActivity() {
                     lifecycleScope.launch {
                         try {
                             SupabaseClient.client.auth.signOut()
-                        } catch (e: Exception) { analytics/fallback }
+                        } catch (e: Exception) {
+                            // تم إصلاح الخطأ وإزالة السلاش والنص غير المتوافق مع الكومبايلر بشكل نهائي هنا
+                        }
                         startActivity(Intent(this@MainActivity, LoginActivity::class.java))
                         finish()
                     }
@@ -222,12 +222,9 @@ class MainActivity : AppCompatActivity() {
                 } else {
                     allProjects.filter { project -> 
                         val projectLang = project.language.trim().lowercase()
-                        val projectCategory = (project as? any)?.let { category.trim().lowercase() } ?: "" 
                         val targetCat = category.trim().lowercase()
                         
-                        // الفلترة الذكية تشمل فحص حقل اللغة وحقل القسم التابع للمشروع
-                        projectLang.contains(targetCat) || targetCat.contains(projectLang) || 
-                        projectCategory.contains(targetCat)
+                        projectLang.contains(targetCat) || targetCat.contains(projectLang)
                     }
                 }
 
