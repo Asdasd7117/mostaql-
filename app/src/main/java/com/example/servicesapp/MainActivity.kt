@@ -36,7 +36,6 @@ class MainActivity : AppCompatActivity() {
     private lateinit var navigationView: NavigationView
     private lateinit var projectsContainer: LinearLayout
     private lateinit var btnMyProjects: Button
-    private lateinit var btnCategories: ImageView
 
     private var selectedCategory: String = "الكل"
     private var currentUserProfile: UserProfile? = null
@@ -49,33 +48,22 @@ class MainActivity : AppCompatActivity() {
         navigationView = findViewById(R.id.navigationView)
         projectsContainer = findViewById(R.id.projectsContainer)
         btnMyProjects = findViewById(R.id.btnMyProjects)
-        btnCategories = findViewById(R.id.btnCategories)
-
-        btnCategories.setOnClickListener { view ->
-            showCategoriesMenu(view)
-        }
 
         lifecycleScope.launch {
-            try {
-                SupabaseClient.client.auth.loadFromStorage()
-                val session = SupabaseClient.client.auth.currentSessionOrNull()
-                
-                if (session == null) {
-                    startActivity(Intent(this@MainActivity, LoginActivity::class.java))
-                    finish()
-                    return@launch
-                }
-
-                val email = session.user?.email ?: "user@example.com"
-                val userName = email.split("@").firstOrNull() ?: "مستخدم"
-                
-                updateNavigationView(email, userName)
-                setupNavigation()
-                loadProjectsByCategory(selectedCategory)
-            } catch (e: Exception) {
+            SupabaseClient.client.auth.loadFromStorage()
+            if (SupabaseClient.client.auth.currentSessionOrNull() == null) {
                 startActivity(Intent(this@MainActivity, LoginActivity::class.java))
                 finish()
+                return@launch
             }
+
+            val session = SupabaseClient.client.auth.currentSessionOrNull()
+            val email = session?.user?.email ?: "user@example.com"
+            val userName = email.split("@").firstOrNull() ?: "مستخدم"
+            
+            updateNavigationView(email, userName)
+            setupNavigation()
+            loadProjectsByCategory(selectedCategory)
         }
     }
 
@@ -99,21 +87,19 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateNavigationView(email: String, userName: String) {
-        val header = navigationView.getHeaderView(0) ?: return
+        val header = navigationView.getHeaderView(0)
+        if (header == null) return
 
         val tvUserName = header.findViewById<TextView>(R.id.tvUserName)
         val tvUserEmail = header.findViewById<TextView>(R.id.tvUserEmail)
 
-        tvUserName?.text = userName
-        tvUserEmail?.text = email
-
-        lifecycleScope.launch(Dispatchers.IO) {
+        lifecycleScope.launch {
             try {
                 val session = SupabaseClient.client.auth.currentSessionOrNull()
                 val userId = session?.user?.id
                 
                 var displayName = userName
-                val displayEmail = session?.user?.email ?: email
+                var displayEmail = email
 
                 if (userId != null) {
                     val profiles = SupabaseClient.client
@@ -125,25 +111,22 @@ class MainActivity : AppCompatActivity() {
                     
                     currentUserProfile = profiles.firstOrNull()
                     
-                    currentUserProfile?.username?.let {
-                        if (it.isNotBlank()) {
-                            displayName = it
-                        } else {
-                            displayName = "يرجى إعداد اسم مستخدم ⚠️"
-                        }
-                    } ?: run {
+                    if (currentUserProfile?.username != null && currentUserProfile!!.username!!.isNotBlank()) {
+                        displayName = currentUserProfile!!.username!!
+                    } else {
                         displayName = "يرجى إعداد اسم مستخدم ⚠️"
                     }
+                    displayEmail = session.user?.email ?: email
                 }
                 
                 withContext(Dispatchers.Main) {
                     tvUserName?.text = displayName
-                    tvUserEmail?.text = displayEmail
                     if (currentUserProfile?.username.isNullOrBlank()) {
                         tvUserName?.setTextColor(Color.RED)
                     } else {
                         tvUserName?.setTextColor(Color.BLACK) 
                     }
+                    tvUserEmail?.text = displayEmail
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
@@ -154,7 +137,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun checkUsernameAndNavigate(destination: Class<*>, extras: (Intent) -> Unit = {}) {
+    private fun checkUsernameAndNavigate(destination: Class<*>, gravityToClose: Int, extras: (Intent) -> Unit = {}) {
         if (currentUserProfile?.username.isNullOrBlank()) {
             Toast.makeText(this, "⚠️ يجب تعيين اسم مستخدم في ملفك الشخصي أولاً!", Toast.LENGTH_LONG).show()
             startActivity(Intent(this, UserProfileActivity::class.java))
@@ -163,11 +146,12 @@ class MainActivity : AppCompatActivity() {
             extras(intent)
             startActivity(intent)
         }
-        drawerLayout.closeDrawer(GravityCompat.START)
+        drawerLayout.closeDrawer(gravityToClose)
     }
 
     private fun setupNavigation() {
         findViewById<ImageView>(R.id.btnMenu).setOnClickListener {
+            Toast.makeText(this, "القائمة", Toast.LENGTH_SHORT).show()
             drawerLayout.openDrawer(GravityCompat.START)
         }
 
@@ -179,11 +163,11 @@ class MainActivity : AppCompatActivity() {
                     true
                 }
                 R.id.navChats -> {
-                    checkUsernameAndNavigate(ChatListActivity::class.java)
+                    checkUsernameAndNavigate(ChatListActivity::class.java, GravityCompat.START)
                     true
                 }
                 R.id.navMyProjects -> {
-                    checkUsernameAndNavigate(UserProjectsActivity::class.java) { intent ->
+                    checkUsernameAndNavigate(UserProjectsActivity::class.java, GravityCompat.START) { intent ->
                         val userId = SupabaseClient.client.auth.currentSessionOrNull()?.user?.id?.toString()
                         intent.putExtra("userId", userId)
                         intent.putExtra("ownerName", currentUserProfile?.username ?: "المستخدم")
@@ -191,16 +175,55 @@ class MainActivity : AppCompatActivity() {
                     true
                 }
                 R.id.navAddProject -> {
-                    checkUsernameAndNavigate(com.example.servicesapp.projects.AddProjectActivity::class.java)
+                    checkUsernameAndNavigate(com.example.servicesapp.projects.AddProjectActivity::class.java, GravityCompat.START)
+                    true
+                }
+                R.id.catAll -> {
+                    selectedCategory = "الكل"
+                    Toast.makeText(this, "تم اختيار: $selectedCategory", Toast.LENGTH_SHORT).show()
+                    loadProjectsByCategory(selectedCategory)
+                    drawerLayout.closeDrawer(GravityCompat.START)
+                    true
+                }
+                R.id.catAndroidWeb -> {
+                    selectedCategory = "مشاريع تطبيقات الاندرويد والويب"
+                    Toast.makeText(this, "تم اختيار: $selectedCategory", Toast.LENGTH_SHORT).show()
+                    loadProjectsByCategory(selectedCategory)
+                    drawerLayout.closeDrawer(GravityCompat.START)
+                    true
+                }
+                R.id.catWebsites -> {
+                    selectedCategory = "مشاريع مواقع ويب"
+                    Toast.makeText(this, "تم اختيار: $selectedCategory", Toast.LENGTH_SHORT).show()
+                    loadProjectsByCategory(selectedCategory)
+                    drawerLayout.closeDrawer(GravityCompat.START)
+                    true
+                }
+                R.id.catArticles -> {
+                    selectedCategory = "كتابة مقالات"
+                    Toast.makeText(this, "تم اختيار: $selectedCategory", Toast.LENGTH_SHORT).show()
+                    loadProjectsByCategory(selectedCategory)
+                    drawerLayout.closeDrawer(GravityCompat.START)
+                    true
+                }
+                R.id.catDesigns -> {
+                    selectedCategory = "تصاميم وشعارات"
+                    Toast.makeText(this, "تم اختيار: $selectedCategory", Toast.LENGTH_SHORT).show()
+                    loadProjectsByCategory(selectedCategory)
+                    drawerLayout.closeDrawer(GravityCompat.START)
+                    true
+                }
+                R.id.catUploadAndroid -> {
+                    selectedCategory = "رفع تطبيقات أندرويد"
+                    Toast.makeText(this, "تم اختيار: $selectedCategory", Toast.LENGTH_SHORT).show()
+                    loadProjectsByCategory(selectedCategory)
+                    drawerLayout.closeDrawer(GravityCompat.START)
                     true
                 }
                 R.id.navLogout -> {
                     drawerLayout.closeDrawer(GravityCompat.START)
                     lifecycleScope.launch {
-                        try {
-                            SupabaseClient.client.auth.signOut()
-                        } catch (e: Exception) {
-                        }
+                        SupabaseClient.client.auth.signOut()
                         startActivity(Intent(this@MainActivity, LoginActivity::class.java))
                         finish()
                     }
@@ -212,7 +235,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun loadProjectsByCategory(category: String) {
-        lifecycleScope.launch(Dispatchers.IO) {
+        lifecycleScope.launch {
             try {
                 val allProjects = ProjectRepository.getAllProjects()
                 
@@ -323,9 +346,7 @@ class MainActivity : AppCompatActivity() {
         lifecycleScope.launch {
             val session = SupabaseClient.client.auth.currentSessionOrNull()
             if (session != null) {
-                val email = session.user?.email ?: ""
-                val currentName = currentUserProfile?.username ?: email.split("@").firstOrNull() ?: "مستخدم"
-                updateNavigationView(email, currentName)
+                updateNavigationView(session.user?.email ?: "", "")
                 loadProjectsByCategory(selectedCategory)
             }
         }
