@@ -2,7 +2,6 @@ package com.example.servicesapp.auth
 
 import android.content.Intent
 import android.os.Bundle
-import android.provider.Settings
 import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
@@ -13,9 +12,7 @@ import com.example.servicesapp.R
 import com.example.servicesapp.SupabaseClient
 import io.github.jan.supabase.gotrue.auth
 import io.github.jan.supabase.gotrue.providers.builtin.Email
-import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.from
-import io.github.jan.supabase.postgrest.rpc
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -72,9 +69,6 @@ class RegisterActivity : AppCompatActivity() {
     }
 
     private fun validateInputs(name: String, email: String, password: String, confirmPass: String): Boolean {
-        val allowedDomains = listOf("gmail.com", "hotmail.com")
-        val emailDomain = if (email.contains("@")) email.substringAfter("@").lowercase() else ""
-
         when {
             name.isEmpty() -> {
                 Toast.makeText(this, "الرجاء إدخال الاسم الكامل", Toast.LENGTH_SHORT).show()
@@ -86,10 +80,6 @@ class RegisterActivity : AppCompatActivity() {
             }
             !android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches() -> {
                 Toast.makeText(this, "البريد الإلكتروني غير صحيح", Toast.LENGTH_SHORT).show()
-                return false
-            }
-            !allowedDomains.contains(emailDomain) -> {
-                Toast.makeText(this, "يسمح فقط بحسابات Gmail و Hotmail", Toast.LENGTH_SHORT).show()
                 return false
             }
             password.isEmpty() -> {
@@ -108,49 +98,26 @@ class RegisterActivity : AppCompatActivity() {
         return true
     }
 
-    private fun getDeviceUniqueID(): String {
-        return Settings.Secure.getString(contentResolver, Settings.Secure.ANDROID_ID)
-    }
-
-    private suspend fun checkRegistrationEligibility(deviceId: String): Boolean {
-        return try {
-            val response = SupabaseClient.client.postgrest.rpc("can_register", buildJsonObject {
-                put("p_device_id", deviceId)
-            })
-            response.data.toString().trim().replace("\"", "").toBoolean()
-        } catch (e: Exception) {
-            false
-        }
-    }
-
     private fun registerUser(name: String, email: String, password: String) {
         registerBtn.isEnabled = false
         registerBtn.text = "جاري إنشاء الحساب..."
 
         lifecycleScope.launch(Dispatchers.IO) {
             try {
-                val deviceId = getDeviceUniqueID()
-                val canRegister = checkRegistrationEligibility(deviceId)
-
-                if (!canRegister) {
-                    withContext(Dispatchers.Main) {
-                        Toast.makeText(this@RegisterActivity, "⚠️ عذراً، لا يمكنك إنشاء أكثر من حساب خلال 48 ساعة من نفس الجهاز.", Toast.LENGTH_LONG).show()
-                        registerBtn.isEnabled = true
-                        registerBtn.text = "إنشاء حساب"
-                    }
-                    return@launch
-                }
-
+                // ✅ التسجيل في Supabase Auth
                 SupabaseClient.client.auth.signUpWith(Email) {
                     this.email = email
                     this.password = password
                 }
 
+                // ✅ انتظر قليلاً ثم احصل على المستخدم الحالي
                 delay(1000)
                 
+                // ✅ الحصول على userId من الجلسة الحالية
                 val userId = SupabaseClient.client.auth.currentSessionOrNull()?.user?.id?.toString()
                 
                 if (userId != null) {
+                    // ✅ حفظ اسم المستخدم في user_profiles فوراً
                     try {
                         SupabaseClient.client
                             .from("user_profiles")
@@ -159,14 +126,8 @@ class RegisterActivity : AppCompatActivity() {
                                     put("user_id", userId)
                                     put("username", name.lowercase().trim())
                                     put("country", "غير محدد")
-                                    put("username_changed", false)
                                 }
                             )
-
-                        SupabaseClient.client.postgrest.rpc("register_device", buildJsonObject {
-                            put("p_device_id", deviceId)
-                        })
-                        
                     } catch (e: Exception) {
                         e.printStackTrace()
                     }
