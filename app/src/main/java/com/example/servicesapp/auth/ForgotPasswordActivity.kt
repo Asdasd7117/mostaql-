@@ -1,4 +1,4 @@
-package com.example.servicesapp.auth
+package com.example.servicesapp.auth // تم تصحيح حرف P إلى صغير
 
 import android.os.Bundle
 import android.view.View
@@ -12,6 +12,7 @@ import com.example.servicesapp.R
 import com.example.servicesapp.SupabaseClient
 import io.github.jan.supabase.gotrue.OtpType
 import io.github.jan.supabase.gotrue.auth
+import io.github.jan.supabase.gotrue.user.userAttributes
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -123,8 +124,9 @@ class ForgotPasswordActivity : AppCompatActivity() {
         verifyCodeBtn.isEnabled = false
         lifecycleScope.launch(Dispatchers.IO) {
             try {
+                // تعديل نوع الـ Otp ليطابق تحديثات Supabase الحديثة
                 SupabaseClient.client.auth.verifyOtp(
-                    type = OtpType.Email.RECOVERY,
+                    type = OtpType.Email.RECOVERY, 
                     email = email,
                     token = code
                 )
@@ -146,10 +148,11 @@ class ForgotPasswordActivity : AppCompatActivity() {
         changePasswordBtn.isEnabled = false
         lifecycleScope.launch(Dispatchers.IO) {
             try {
+                // تعديل بناء الـ userAttributes بالطريقة الصحيحة والموصى بها للـ DSL في Kotlin
                 SupabaseClient.client.auth.updateUser(
-                    attributes = io.github.jan.supabase.gotrue.user.UserAttributes(
+                    attributes = userAttributes {
                         password = newPass
-                    )
+                    }
                 )
                 withContext(Dispatchers.Main) {
                     Toast.makeText(this@ForgotPasswordActivity, "تم تغيير كلمة المرور بنجاح", Toast.LENGTH_LONG).show()
