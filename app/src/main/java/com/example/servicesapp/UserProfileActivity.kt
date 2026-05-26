@@ -138,11 +138,7 @@ class UserProfileActivity : AppCompatActivity() {
                     
                     SupabaseClient.client
                         .from("user_profiles")
-                        .update(updatedProfile) {
-                            filter {
-                                eq("user_id", userId)
-                            }
-                        }
+                        .upsert(updatedProfile)
                     
                     Toast.makeText(this@UserProfileActivity, "Success", Toast.LENGTH_LONG).show()
                     finish()
