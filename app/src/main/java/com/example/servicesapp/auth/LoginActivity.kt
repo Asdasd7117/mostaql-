@@ -31,6 +31,7 @@ class LoginActivity : AppCompatActivity() {
     private lateinit var registerBtn: Button
     private lateinit var titleText: TextView
     private lateinit var loginBanner: ImageView
+    private lateinit var forgotPasswordBtn: TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -47,6 +48,7 @@ class LoginActivity : AppCompatActivity() {
         password = findViewById(R.id.password)
         loginBtn = findViewById(R.id.loginBtn)
         registerBtn = findViewById(R.id.registerBtn)
+        forgotPasswordBtn = findViewById(R.id.forgotPasswordBtn)
     }
 
     private fun setupClickListeners() {
@@ -65,6 +67,10 @@ class LoginActivity : AppCompatActivity() {
         registerBtn.setOnClickListener {
             startActivity(Intent(this, RegisterActivity::class.java))
             finish()
+        }
+
+        forgotPasswordBtn.setOnClickListener {
+            startActivity(Intent(this, ForgotPasswordActivity::class.java))
         }
     }
 
