@@ -104,6 +104,11 @@ class UserProfileActivity : AppCompatActivity() {
     private fun saveUsername() {
         val usernameInput = etUsername.text.toString().trim().lowercase()
         
+        if (usernameInput.isBlank() || usernameInput.startsWith("user_")) {
+            Toast.makeText(this, "⚠️ يرجى إدخال اسم مستخدم حقيقي ولا يبدأ بـ user_", Toast.LENGTH_LONG).show()
+            return
+        }
+
         if (usernameInput.length < 3) {
             Toast.makeText(this, "Minimum 3 characters", Toast.LENGTH_SHORT).show()
             return
@@ -151,7 +156,12 @@ class UserProfileActivity : AppCompatActivity() {
                     finish()
                 }
             } catch (e: Exception) {
-                Toast.makeText(this@UserProfileActivity, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                val errorMsg = e.message ?: ""
+                if (errorMsg.contains("duplicate key") || errorMsg.contains("unique constraint")) {
+                    Toast.makeText(this@UserProfileActivity, "❌ اسم المستخدم هذا مأخوذ مسبقاً! يرجى اختيار اسم آخر.", Toast.LENGTH_LONG).show()
+                } else {
+                    Toast.makeText(this@UserProfileActivity, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
                 btnSave.isEnabled = true
                 btnSave.text = "Save"
             }
