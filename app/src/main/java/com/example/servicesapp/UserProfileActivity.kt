@@ -126,18 +126,38 @@ class UserProfileActivity : AppCompatActivity() {
                 }
                 
                 if (userId != null) {
-                    val profiles = SupabaseClient.client
+                    val currentProfiles = SupabaseClient.client
                         .from("user_profiles")
                         .select {
                             filter { eq("user_id", userId) }
                         }
                         .decodeList<UserProfile>()
                     
-                    val existingProfile = profiles.firstOrNull()
+                    val existingProfile = currentProfiles.firstOrNull()
                     
                     if (existingProfile?.username_changed == true) {
                         Toast.makeText(this@UserProfileActivity, "Cannot change again", Toast.LENGTH_SHORT).show()
                         disableEditing()
+                        return@launch
+                    }
+
+                    if (existingProfile?.username?.trim()?.lowercase() == usernameInput) {
+                        Toast.makeText(this@UserProfileActivity, "Success", Toast.LENGTH_LONG).show()
+                        finish()
+                        return@launch
+                    }
+
+                    val checkConflict = SupabaseClient.client
+                        .from("user_profiles")
+                        .select {
+                            filter { eq("username", usernameInput) }
+                        }
+                        .decodeList<UserProfile>()
+
+                    if (checkConflict.isNotEmpty()) {
+                        Toast.makeText(this@UserProfileActivity, "❌ اسم المستخدم هذا مأخوذ مسبقاً! يرجى اختيار اسم آخر.", Toast.LENGTH_LONG).show()
+                        btnSave.isEnabled = true
+                        btnSave.text = "Save"
                         return@launch
                     }
                     
