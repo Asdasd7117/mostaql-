@@ -157,7 +157,6 @@ class MainActivity : AppCompatActivity() {
 
     private fun setupNavigation() {
         findViewById<View>(R.id.btnMenu).setOnClickListener {
-            Toast.makeText(this, "القائمة", Toast.LENGTH_SHORT).show()
             drawerLayout.openDrawer(GravityCompat.START)
         }
 
@@ -182,48 +181,6 @@ class MainActivity : AppCompatActivity() {
                 }
                 R.id.navAddProject -> {
                     checkUsernameAndNavigate(com.example.servicesapp.projects.AddProjectActivity::class.java)
-                    true
-                }
-                R.id.catAll -> {
-                    selectedCategory = "الكل"
-                    Toast.makeText(this, "تم اختيار: $selectedCategory", Toast.LENGTH_SHORT).show()
-                    loadProjectsByCategory(selectedCategory)
-                    drawerLayout.closeDrawer(GravityCompat.START)
-                    true
-                }
-                R.id.catAndroidWeb -> {
-                    selectedCategory = "مشاريع تطبيقات الاندرويد والويب"
-                    Toast.makeText(this, "تم اختيار: $selectedCategory", Toast.LENGTH_SHORT).show()
-                    loadProjectsByCategory(selectedCategory)
-                    drawerLayout.closeDrawer(GravityCompat.START)
-                    true
-                }
-                R.id.catWebsites -> {
-                    selectedCategory = "مشاريع مواقع ويب"
-                    Toast.makeText(this, "تم اختيار: $selectedCategory", Toast.LENGTH_SHORT).show()
-                    loadProjectsByCategory(selectedCategory)
-                    drawerLayout.closeDrawer(GravityCompat.START)
-                    true
-                }
-                R.id.catArticles -> {
-                    selectedCategory = "كتابة مقالات"
-                    Toast.makeText(this, "تم اختيار: $selectedCategory", Toast.LENGTH_SHORT).show()
-                    loadProjectsByCategory(selectedCategory)
-                    drawerLayout.closeDrawer(GravityCompat.START)
-                    true
-                }
-                R.id.catDesigns -> {
-                    selectedCategory = "تصاميم وشعارات"
-                    Toast.makeText(this, "تم اختيار: $selectedCategory", Toast.LENGTH_SHORT).show()
-                    loadProjectsByCategory(selectedCategory)
-                    drawerLayout.closeDrawer(GravityCompat.START)
-                    true
-                }
-                R.id.catUploadAndroid -> {
-                    selectedCategory = "رفع تطبيقات أندرويد"
-                    Toast.makeText(this, "تم اختيار: $selectedCategory", Toast.LENGTH_SHORT).show()
-                    loadProjectsByCategory(selectedCategory)
-                    drawerLayout.closeDrawer(GravityCompat.START)
                     true
                 }
                 R.id.navLogout -> {
@@ -352,9 +309,7 @@ class MainActivity : AppCompatActivity() {
         lifecycleScope.launch {
             val session = SupabaseClient.client.auth.currentSessionOrNull()
             if (session != null) {
-                val email = session.user?.email ?: "user@example.com"
-                val userName = email.split("@").firstOrNull() ?: "مستخدم"
-                updateNavigationView(email, userName)
+                updateNavigationView(session.user?.email ?: "", "")
                 loadProjectsByCategory(selectedCategory)
             }
         }
