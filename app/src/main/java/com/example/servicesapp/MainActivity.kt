@@ -60,7 +60,7 @@ class MainActivity : AppCompatActivity() {
             val session = SupabaseClient.client.auth.currentSessionOrNull()
             val email = session?.user?.email ?: "user@example.com"
             
-            updateNavigationView(email, "")
+            updateNavigationView(email)
             setupNavigation()
             loadProjectsByCategory(selectedCategory)
         }
@@ -85,7 +85,7 @@ class MainActivity : AppCompatActivity() {
         popupMenu.show()
     }
 
-    private fun updateNavigationView(email: String, userName: String) {
+    private fun updateNavigationView(email: String) {
         val header = navigationView.getHeaderView(0)
         if (header == null) return
 
@@ -97,7 +97,7 @@ class MainActivity : AppCompatActivity() {
                 val session = SupabaseClient.client.auth.currentSessionOrNull()
                 val userId = session?.user?.id
                 
-                var displayName = ""
+                var displayName = "يرجى إعداد اسم مستخدم ⚠️"
                 var displayEmail = email
 
                 if (userId != null) {
@@ -112,8 +112,6 @@ class MainActivity : AppCompatActivity() {
                     
                     if (currentUserProfile?.username != null && currentUserProfile!!.username!!.isNotBlank()) {
                         displayName = currentUserProfile!!.username!!
-                    } else {
-                        displayName = "يرجى إعداد اسم مستخدم ⚠️"
                     }
                     displayEmail = session.user?.email ?: email
                 }
@@ -354,7 +352,7 @@ class MainActivity : AppCompatActivity() {
         lifecycleScope.launch {
             val session = SupabaseClient.client.auth.currentSessionOrNull()
             if (session != null) {
-                updateNavigationView(session.user?.email ?: "", "")
+                updateNavigationView(session.user?.email ?: "")
                 loadProjectsByCategory(selectedCategory)
             }
         }
