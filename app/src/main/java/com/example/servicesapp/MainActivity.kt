@@ -143,7 +143,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun checkUsernameAndNavigate(destination: Class<*>, gravityToClose: Int, extras: (Intent) -> Unit = {}) {
+    private fun checkUsernameAndNavigate(destination: Class<*>, extras: (Intent) -> Unit = {}) {
         if (currentUserProfile?.username.isNullOrBlank()) {
             Toast.makeText(this, "⚠️ يجب تعيين اسم مستخدم في ملفك الشخصي أولاً!", Toast.LENGTH_LONG).show()
             startActivity(Intent(this, UserProfileActivity::class.java))
@@ -152,7 +152,7 @@ class MainActivity : AppCompatActivity() {
             extras(intent)
             startActivity(intent)
         }
-        drawerLayout.closeDrawer(gravityToClose)
+        drawerLayout.closeDrawer(GravityCompat.START)
     }
 
     private fun setupNavigation() {
@@ -169,11 +169,11 @@ class MainActivity : AppCompatActivity() {
                     true
                 }
                 R.id.navChats -> {
-                    checkUsernameAndNavigate(ChatListActivity::class.java, GravityCompat.START)
+                    checkUsernameAndNavigate(ChatListActivity::class.java)
                     true
                 }
                 R.id.navMyProjects -> {
-                    checkUsernameAndNavigate(UserProjectsActivity::class.java, GravityCompat.START) { intent ->
+                    checkUsernameAndNavigate(UserProjectsActivity::class.java) { intent ->
                         val userId = SupabaseClient.client.auth.currentSessionOrNull()?.user?.id?.toString()
                         intent.putExtra("userId", userId)
                         intent.putExtra("ownerName", currentUserProfile?.username ?: "المستخدم")
@@ -181,7 +181,7 @@ class MainActivity : AppCompatActivity() {
                     true
                 }
                 R.id.navAddProject -> {
-                    checkUsernameAndNavigate(com.example.servicesapp.projects.AddProjectActivity::class.java, GravityCompat.START)
+                    checkUsernameAndNavigate(com.example.servicesapp.projects.AddProjectActivity::class.java)
                     true
                 }
                 R.id.catAll -> {
