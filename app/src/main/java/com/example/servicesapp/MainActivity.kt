@@ -118,7 +118,7 @@ class MainActivity : AppCompatActivity() {
                 
                 withContext(Dispatchers.Main) {
                     tvUserName?.text = displayName
-                    if (currentUserProfile?.username.isNullOrBlank()) {
+                    if (currentUserProfile == null || currentUserProfile?.username.isNullOrBlank()) {
                         tvUserName?.setTextColor(Color.RED)
                     } else {
                         tvUserName?.setTextColor(Color.BLACK) 
@@ -136,7 +136,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun checkUsernameAndNavigate(destination: Class<*>, gravityToClose: Int, extras: (Intent) -> Unit = {}) {
-        if (currentUserProfile?.username.isNullOrBlank()) {
+        if (currentUserProfile == null || currentUserProfile?.username.isNullOrBlank()) {
             Toast.makeText(this, "⚠️ يجب تعيين اسم مستخدم في ملفك الشخصي أولاً!", Toast.LENGTH_LONG).show()
             startActivity(Intent(this, UserProfileActivity::class.java))
         } else {
@@ -311,14 +311,19 @@ class MainActivity : AppCompatActivity() {
             setBackgroundResource(R.drawable.project_card_background)
             elevation = 6f
             setOnClickListener {
-                val intent = Intent(this@MainActivity, ProjectDetailActivity::class.java).apply {
-                    putExtra("projectId", project.id ?: 0)
-                    putExtra("projectName", project.name)
-                    putExtra("projectDescription", project.description)
-                    putExtra("projectLanguage", project.language)
-                    putExtra("projectOwnerId", project.userId)
+                if (currentUserProfile == null || currentUserProfile?.username.isNullOrBlank()) {
+                    Toast.makeText(this@MainActivity, "⚠️ يجب تعيين اسم مستخدم أولاً لرؤية التفاصيل والتعليق أو المراسلة!", Toast.LENGTH_LONG).show()
+                    startActivity(Intent(this@MainActivity, UserProfileActivity::class.java))
+                } else {
+                    val intent = Intent(this@MainActivity, ProjectDetailActivity::class.java).apply {
+                        putExtra("projectId", project.id ?: 0)
+                        putExtra("projectName", project.name)
+                        putExtra("projectDescription", project.description)
+                        putExtra("projectLanguage", project.language)
+                        putExtra("projectOwnerId", project.userId)
+                    }
+                    startActivity(intent)
                 }
-                startActivity(intent)
             }
         }
 
