@@ -352,7 +352,9 @@ class MainActivity : AppCompatActivity() {
         lifecycleScope.launch {
             val session = SupabaseClient.client.auth.currentSessionOrNull()
             if (session != null) {
-                updateNavigationView(session.user?.email ?: "", "")
+                val email = session.user?.email ?: "user@example.com"
+                val userName = email.split("@").firstOrNull() ?: "مستخدم"
+                updateNavigationView(email, userName)
                 loadProjectsByCategory(selectedCategory)
             }
         }
