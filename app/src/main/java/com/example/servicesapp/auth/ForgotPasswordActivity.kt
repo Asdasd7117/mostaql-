@@ -12,7 +12,6 @@ import com.example.servicesapp.R
 import com.example.servicesapp.SupabaseClient
 import io.github.jan.supabase.gotrue.OtpType
 import io.github.jan.supabase.gotrue.auth
-import io.github.jan.supabase.gotrue.user.UserAttributes
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -148,7 +147,9 @@ class ForgotPasswordActivity : AppCompatActivity() {
         lifecycleScope.launch(Dispatchers.IO) {
             try {
                 SupabaseClient.client.auth.updateUser(
-                    updateUser = UserAttributes(password = newPass)
+                    updateUser = {
+                        password = newPass
+                    }
                 )
                 withContext(Dispatchers.Main) {
                     Toast.makeText(this@ForgotPasswordActivity, "تم تغيير كلمة المرور بنجاح", Toast.LENGTH_LONG).show()
