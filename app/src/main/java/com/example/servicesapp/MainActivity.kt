@@ -118,7 +118,7 @@ class MainActivity : AppCompatActivity() {
                 
                 withContext(Dispatchers.Main) {
                     tvUserName?.text = displayName
-                    if (currentUserProfile == null || currentUserProfile?.username.isNullOrBlank()) {
+                    if (isInvalidUsername(currentUserProfile?.username)) {
                         tvUserName?.setTextColor(Color.RED)
                     } else {
                         tvUserName?.setTextColor(Color.BLACK) 
@@ -135,9 +135,18 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    // دالة الفحص الصارمة: تكشف وتمنع الأسماء الفارغة أو التلقائية التي تبدأ بـ user_
+    private fun isInvalidUsername(username: String?): Boolean {
+        if (username.isNullOrBlank()) return true
+        val cleanName = username.trim().lowercase()
+        if (cleanName.startsWith("user_")) return true
+        if (cleanName == "يرجى إعداد اسم مستخدم ⚠️") return true
+        return false
+    }
+
     private fun checkUsernameAndNavigate(destination: Class<*>, gravityToClose: Int, extras: (Intent) -> Unit = {}) {
-        if (currentUserProfile == null || currentUserProfile?.username.isNullOrBlank()) {
-            Toast.makeText(this, "⚠️ يجب تعيين اسم مستخدم في ملفك الشخصي أولاً!", Toast.LENGTH_LONG).show()
+        if (isInvalidUsername(currentUserProfile?.username)) {
+            Toast.makeText(this, "⚠️ يجب تعيين اسم مستخدم حقيقي في ملفك الشخصي أولاً للتفاعل!", Toast.LENGTH_LONG).show()
             startActivity(Intent(this, UserProfileActivity::class.java))
         } else {
             val intent = Intent(this, destination)
@@ -311,7 +320,8 @@ class MainActivity : AppCompatActivity() {
             setBackgroundResource(R.drawable.project_card_background)
             elevation = 6f
             setOnClickListener {
-                if (currentUserProfile == null || currentUserProfile?.username.isNullOrBlank()) {
+                // تجميد الدخول للمشروع والتعليقات إذا كان الاسم افتراضي تلقائي أو فارغ
+                if (isInvalidUsername(currentUserProfile?.username)) {
                     Toast.makeText(this@MainActivity, "⚠️ يجب تعيين اسم مستخدم أولاً لرؤية التفاصيل والتعليق أو المراسلة!", Toast.LENGTH_LONG).show()
                     startActivity(Intent(this@MainActivity, UserProfileActivity::class.java))
                 } else {
