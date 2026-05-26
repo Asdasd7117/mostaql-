@@ -33,6 +33,7 @@
         <activity android:name=".auth.LoginActivity" android:exported="false" />
         <activity android:name=".auth.RegisterActivity" android:exported="false" />
         <activity android:name=".auth.VerifyActivity" android:exported="false" />
+        <activity android:name=".auth.ForgotPasswordActivity" android:exported="false" />
         <activity android:name=".home.HomeActivity" android:exported="false" />
         <activity android:name=".projects.AddProjectActivity" android:exported="false" />
         <activity android:name=".projects.MyProjectsActivity" android:exported="false" />
