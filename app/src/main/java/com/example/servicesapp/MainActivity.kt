@@ -135,7 +135,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    // دالة الفحص الصارمة: تكشف وتمنع الأسماء الفارغة أو التلقائية التي تبدأ بـ user_
+    // الدالة الذكية التي تكشف وتمنع الاسم الافتراضي (user_) أو الفارغ
     private fun isInvalidUsername(username: String?): Boolean {
         if (username.isNullOrBlank()) return true
         val cleanName = username.trim().lowercase()
@@ -146,7 +146,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun checkUsernameAndNavigate(destination: Class<*>, gravityToClose: Int, extras: (Intent) -> Unit = {}) {
         if (isInvalidUsername(currentUserProfile?.username)) {
-            Toast.makeText(this, "⚠️ يجب تعيين اسم مستخدم حقيقي في ملفك الشخصي أولاً للتفاعل!", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "⚠️ يجب تعيين اسم مستخدم حقيقي لمرة واحدة أولاً للتفاعل والمشاركة!", Toast.LENGTH_LONG).show()
             startActivity(Intent(this, UserProfileActivity::class.java))
         } else {
             val intent = Intent(this, destination)
@@ -159,6 +159,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupNavigation() {
+        // جلب زر القائمة كـ View عام لحل مشكلة الـ ClassCastException نهائياً
         val menuButton = findViewById<View>(R.id.btnMenu)
         menuButton?.setOnClickListener {
             Toast.makeText(this, "القائمة", Toast.LENGTH_SHORT).show()
@@ -320,7 +321,7 @@ class MainActivity : AppCompatActivity() {
             setBackgroundResource(R.drawable.project_card_background)
             elevation = 6f
             setOnClickListener {
-                // تجميد الدخول للمشروع والتعليقات إذا كان الاسم افتراضي تلقائي أو فارغ
+                // منع الانتقال لرؤية التفاصيل أو التعليق أو المراسلة إذا كان الاسم افتراضي تلقائي أو فارغ
                 if (isInvalidUsername(currentUserProfile?.username)) {
                     Toast.makeText(this@MainActivity, "⚠️ يجب تعيين اسم مستخدم أولاً لرؤية التفاصيل والتعليق أو المراسلة!", Toast.LENGTH_LONG).show()
                     startActivity(Intent(this@MainActivity, UserProfileActivity::class.java))
