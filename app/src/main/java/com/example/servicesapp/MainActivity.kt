@@ -200,7 +200,6 @@ class MainActivity : AppCompatActivity() {
                         try {
                             SupabaseClient.client.auth.signOut()
                         } catch (e: Exception) {
-                            // تم إصلاح الخطأ وإزالة السلاش والنص غير المتوافق مع الكومبايلر بشكل نهائي هنا
                         }
                         startActivity(Intent(this@MainActivity, LoginActivity::class.java))
                         finish()
