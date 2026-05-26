@@ -98,7 +98,7 @@ class MainActivity : AppCompatActivity() {
                 val session = SupabaseClient.client.auth.currentSessionOrNull()
                 val userId = session?.user?.id
                 
-                var displayName = userName
+                var displayName = ""
                 var displayEmail = email
 
                 if (userId != null) {
@@ -130,7 +130,8 @@ class MainActivity : AppCompatActivity() {
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
-                    tvUserName?.text = userName
+                    tvUserName?.text = "يرجى إعداد اسم مستخدم ⚠️"
+                    tvUserName?.setTextColor(Color.RED)
                     tvUserEmail?.text = email
                 }
             }
@@ -178,7 +179,7 @@ class MainActivity : AppCompatActivity() {
                     checkUsernameAndNavigate(UserProjectsActivity::class.java, gravity) { intent ->
                         val userId = SupabaseClient.client.auth.currentSessionOrNull()?.user?.id?.toString()
                         intent.putExtra("userId", userId)
-                        intent.putExtra("ownerName", currentUserProfile?.username ?: "المستخدم")
+                        intent.putExtra("ownerName", currentUserProfile?.username ?: "")
                     }
                     true
                 }
@@ -313,19 +314,14 @@ class MainActivity : AppCompatActivity() {
             setBackgroundResource(R.drawable.project_card_background)
             elevation = 6f
             setOnClickListener {
-                if (currentUserProfile?.username.isNullOrBlank()) {
-                    Toast.makeText(context, "⚠️ يجب تعيين اسم مستخدم في ملفك الشخصي أولاً لرؤية التفاصيل والمراسلة!", Toast.LENGTH_LONG).show()
-                    startActivity(Intent(context, UserProfileActivity::class.java))
-                } else {
-                    val intent = Intent(this@MainActivity, ProjectDetailActivity::class.java).apply {
-                        putExtra("projectId", project.id ?: 0)
-                        putExtra("projectName", project.name)
-                        putExtra("projectDescription", project.description)
-                        putExtra("projectLanguage", project.language)
-                        putExtra("projectOwnerId", project.userId)
-                    }
-                    startActivity(intent)
+                val intent = Intent(this@MainActivity, ProjectDetailActivity::class.java).apply {
+                    putExtra("projectId", project.id ?: 0)
+                    putExtra("projectName", project.name)
+                    putExtra("projectDescription", project.description)
+                    putExtra("projectLanguage", project.language)
+                    putExtra("projectOwnerId", project.userId)
                 }
+                startActivity(intent)
             }
         }
 
