@@ -146,11 +146,13 @@ class ForgotPasswordActivity : AppCompatActivity() {
         changePasswordBtn.isEnabled = false
         lifecycleScope.launch(Dispatchers.IO) {
             try {
-                SupabaseClient.client.auth.updateUser {
-                    password = newPass
-                }
+                SupabaseClient.client.auth.updateUser(
+                    attributes = io.github.jan.supabase.gotrue.user.UserAttributes(
+                        password = newPass
+                    )
+                )
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(this@ForgotPasswordActivity, "تم تغيير كلمة المرور بنجاح", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this@ForgotPasswordActivity, "تم تغيير كلمة المرور بنجاح", Toast.LENGTH_LONG).show()
                     finish()
                 }
             } catch (e: Exception) {
