@@ -22,7 +22,8 @@ workflows:
             -Pandroid.injected.signing.store.password=$CM_KEYSTORE_PASSWORD \
             -Pandroid.injected.signing.key.alias=$CM_KEY_ALIAS \
             -Pandroid.injected.signing.key.password=$CM_KEY_PASSWORD \
-            --stacktrace --info
+            --quiet \
+            --console=plain
 
     artifacts:
       - app/build/outputs/apk/release/*.apk
