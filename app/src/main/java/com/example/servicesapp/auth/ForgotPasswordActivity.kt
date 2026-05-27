@@ -12,7 +12,6 @@ import com.example.servicesapp.R
 import com.example.servicesapp.SupabaseClient
 import io.github.jan.supabase.gotrue.OtpType
 import io.github.jan.supabase.gotrue.auth
-import io.github.jan.supabase.gotrue.user.userAttributes
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -124,8 +123,8 @@ class ForgotPasswordActivity : AppCompatActivity() {
         verifyCodeBtn.isEnabled = false
         lifecycleScope.launch(Dispatchers.IO) {
             try {
-                SupabaseClient.client.auth.verifyOtp(
-                    type = OtpType.Email("recovery"),
+                SupabaseClient.client.auth.verifyUserOtp(
+                    type = OtpType.Email.RECOVERY,
                     email = email,
                     token = code
                 )
@@ -148,7 +147,7 @@ class ForgotPasswordActivity : AppCompatActivity() {
         lifecycleScope.launch(Dispatchers.IO) {
             try {
                 SupabaseClient.client.auth.updateUser(
-                    attributes = userAttributes {
+                    updateConfig = {
                         password = newPass
                     }
                 )
