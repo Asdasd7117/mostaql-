@@ -1,4 +1,4 @@
-package com.example.servicesapp.auth // تم تصحيح حرف P إلى صغير
+package com.example.servicesapp.auth
 
 import android.os.Bundle
 import android.view.View
@@ -124,9 +124,8 @@ class ForgotPasswordActivity : AppCompatActivity() {
         verifyCodeBtn.isEnabled = false
         lifecycleScope.launch(Dispatchers.IO) {
             try {
-                // تعديل نوع الـ Otp ليطابق تحديثات Supabase الحديثة
                 SupabaseClient.client.auth.verifyOtp(
-                    type = OtpType.Email.RECOVERY, 
+                    type = OtpType.Email("recovery"),
                     email = email,
                     token = code
                 )
@@ -148,7 +147,6 @@ class ForgotPasswordActivity : AppCompatActivity() {
         changePasswordBtn.isEnabled = false
         lifecycleScope.launch(Dispatchers.IO) {
             try {
-                // تعديل بناء الـ userAttributes بالطريقة الصحيحة والموصى بها للـ DSL في Kotlin
                 SupabaseClient.client.auth.updateUser(
                     attributes = userAttributes {
                         password = newPass
