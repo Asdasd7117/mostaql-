@@ -11,7 +11,7 @@ import androidx.lifecycle.lifecycleScope
 import com.example.servicesapp.R
 import com.example.servicesapp.SupabaseClient
 import io.github.jan.supabase.gotrue.OtpType
-import io.github.jan.supabase.gotrue.gotrue
+import io.github.jan.supabase.gotrue.auth
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -104,7 +104,7 @@ class ForgotPasswordActivity : AppCompatActivity() {
         sendCodeBtn.isEnabled = false
         lifecycleScope.launch(Dispatchers.IO) {
             try {
-                SupabaseClient.client.gotrue.resetPasswordForEmail(email = email)
+                SupabaseClient.client.auth.resetPasswordForEmail(email = email)
                 withContext(Dispatchers.Main) {
                     Toast.makeText(this@ForgotPasswordActivity, "تم إرسال رمز التحقق إلى بريدك الإلكتروني", Toast.LENGTH_LONG).show()
                     stepEmailLayout.visibility = View.GONE
@@ -123,13 +123,12 @@ class ForgotPasswordActivity : AppCompatActivity() {
         verifyCodeBtn.isEnabled = false
         lifecycleScope.launch(Dispatchers.IO) {
             try {
-                // الكود الدقيق والوحيد المعتمد في إصدار gotrue-kt 2.5.4 لعمل فحص للـ OTP
-                SupabaseClient.client.gotrue.verifyOtp(
-                    type = OtpType.Email.RECOVERY
-                ) {
-                    this.email = email
-                    this.token = code
-                }
+                // دالة التحقق المباشرة والمدعومة في إصدار 2.5.4 عبر الامتداد auth
+                SupabaseClient.client.auth.verifyOtp(
+                    type = OtpType.Email.RECOVERY,
+                    email = email,
+                    token = code
+                )
                 withContext(Dispatchers.Main) {
                     Toast.makeText(this@ForgotPasswordActivity, "تم التحقق بنجاح، أدخل كلمة المرور الجديدة", Toast.LENGTH_SHORT).show()
                     stepCodeLayout.visibility = View.GONE
@@ -148,11 +147,9 @@ class ForgotPasswordActivity : AppCompatActivity() {
         changePasswordBtn.isEnabled = false
         lifecycleScope.launch(Dispatchers.IO) {
             try {
-                SupabaseClient.client.gotrue.updateUser(
-                    config = {
-                        password = newPass
-                    }
-                )
+                SupabaseClient.client.auth.updateUser {
+                    password = newPass
+                }
                 withContext(Dispatchers.Main) {
                     Toast.makeText(this@ForgotPasswordActivity, "تم تغيير كلمة المرور بنجاح", Toast.LENGTH_LONG).show()
                     finish()
