@@ -123,11 +123,13 @@ class ForgotPasswordActivity : AppCompatActivity() {
         verifyCodeBtn.isEnabled = false
         lifecycleScope.launch(Dispatchers.IO) {
             try {
-                // دالة التحقق المباشرة والمدعومة في إصدار 2.5.4 عبر الامتداد auth
-                SupabaseClient.client.auth.verifyOtp(
-                    type = OtpType.Email.RECOVERY,
-                    email = email,
-                    token = code
+                // استخدام دالة verifyOtpWith وكتابة المسار الكامل لـ OtpVerifyBy لمنع أي خطأ Import
+                SupabaseClient.client.auth.verifyOtpWith(
+                    verifyBy = io.github.jan.supabase.gotrue.providers.builtin.OtpVerifyBy.Email(
+                        type = OtpType.Email.RECOVERY,
+                        email = email,
+                        token = code
+                    )
                 )
                 withContext(Dispatchers.Main) {
                     Toast.makeText(this@ForgotPasswordActivity, "تم التحقق بنجاح، أدخل كلمة المرور الجديدة", Toast.LENGTH_SHORT).show()
@@ -147,9 +149,11 @@ class ForgotPasswordActivity : AppCompatActivity() {
         changePasswordBtn.isEnabled = false
         lifecycleScope.launch(Dispatchers.IO) {
             try {
-                SupabaseClient.client.auth.updateUser {
-                    password = newPass
-                }
+                SupabaseClient.client.auth.updateUser(
+                    config = {
+                        password = newPass
+                    }
+                )
                 withContext(Dispatchers.Main) {
                     Toast.makeText(this@ForgotPasswordActivity, "تم تغيير كلمة المرور بنجاح", Toast.LENGTH_LONG).show()
                     finish()
