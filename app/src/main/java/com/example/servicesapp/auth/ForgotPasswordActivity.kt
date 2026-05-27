@@ -10,7 +10,8 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.example.servicesapp.R
 import com.example.servicesapp.SupabaseClient
-import io.github.jan.supabase.auth.auth
+import io.github.jan.supabase.gotrue.OtpType
+import io.github.jan.supabase.gotrue.gotrue
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -103,7 +104,7 @@ class ForgotPasswordActivity : AppCompatActivity() {
         sendCodeBtn.isEnabled = false
         lifecycleScope.launch(Dispatchers.IO) {
             try {
-                SupabaseClient.client.auth.resetPasswordForEmail(email = email)
+                SupabaseClient.client.gotrue.resetPasswordForEmail(email = email)
                 withContext(Dispatchers.Main) {
                     Toast.makeText(this@ForgotPasswordActivity, "تم إرسال رمز التحقق إلى بريدك الإلكتروني", Toast.LENGTH_LONG).show()
                     stepEmailLayout.visibility = View.GONE
@@ -122,51 +123,21 @@ class ForgotPasswordActivity : AppCompatActivity() {
         verifyCodeBtn.isEnabled = false
         lifecycleScope.launch(Dispatchers.IO) {
             try {
-                val authInstance = SupabaseClient.client.auth
-                val methods = authInstance::class.java.declaredMethods
-                
-                // البحث عن أي دالة تحتوي على كلمة 'verify' أو 'Otp' أو 'Token' لتشغيلها ديناميكياً
-                val targetMethod = methods.firstOrNull { 
-                    it.name.contains("verify", ignoreCase = true) || it.name.contains("otp", ignoreCase = true)
+                // الكود الدقيق والوحيد المعتمد في إصدار gotrue-kt 2.5.4 لعمل فحص للـ OTP
+                SupabaseClient.client.gotrue.verifyOtp(
+                    type = OtpType.Email.RECOVERY
+                ) {
+                    this.email = email
+                    this.token = code
                 }
-
-                if (targetMethod != null) {
-                    withContext(Dispatchers.Main) {
-                        // طباعة اسم الدالة الحقيقي على شاشة هاتفك لتعرفها فوراً
-                        Toast.makeText(this@ForgotPasswordActivity, "اسم الدالة في نسختك هو: ${targetMethod.name}", Toast.LENGTH_LONG).show()
-                    }
-                    
-                    // محاولة استدعاء الدالة بشكل مرن حسب عدد الباراميترات المتوفرة لمنع انهيار التطبيق
-                    try {
-                        if (targetMethod.parameterTypes.size == 3) {
-                            // إذا كانت تستقبل 3 متغيرات (Type, Ident, Token)
-                            val otpTypeClass = Class.forName("io.github.jan.supabase.auth.providers.builtin.Otp")
-                            val emailField = otpTypeClass.getDeclaredField("Email")
-                            val emailObj = emailField.get(null)
-                            val recoveryField = emailObj::class.java.getDeclaredField("RECOVERY")
-                            val recoveryType = recoveryField.get(emailObj)
-                            
-                            targetMethod.invoke(authInstance, recoveryType, email, code)
-                        } else {
-                            // استدعاء عام كاحتياط
-                            targetMethod.invoke(authInstance, email, code)
-                        }
-                    } catch (e: Exception) {
-                        // تجاوز خطأ الانفوك لتمرير الواجهة فقط
-                    }
-                } else {
-                    withContext(Dispatchers.Main) {
-                        Toast.makeText(this@ForgotPasswordActivity, "لم يتم العثور على دالة مطابقة داخل الكلاس", Toast.LENGTH_SHORT).show()
-                    }
-                }
-
                 withContext(Dispatchers.Main) {
+                    Toast.makeText(this@ForgotPasswordActivity, "تم التحقق بنجاح، أدخل كلمة المرور الجديدة", Toast.LENGTH_SHORT).show()
                     stepCodeLayout.visibility = View.GONE
                     stepPasswordLayout.visibility = View.VISIBLE
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(this@ForgotPasswordActivity, "حدث خطأ أثناء الفحص: ${e.message}", Toast.LENGTH_LONG).show()
+                    Toast.makeText(this@ForgotPasswordActivity, "الرمز غير صحيح أو منتهي الصلاحية", Toast.LENGTH_LONG).show()
                     verifyCodeBtn.isEnabled = true
                 }
             }
@@ -177,7 +148,7 @@ class ForgotPasswordActivity : AppCompatActivity() {
         changePasswordBtn.isEnabled = false
         lifecycleScope.launch(Dispatchers.IO) {
             try {
-                SupabaseClient.client.auth.updateUser(
+                SupabaseClient.client.gotrue.updateUser(
                     config = {
                         password = newPass
                     }
