@@ -123,7 +123,7 @@ class ForgotPasswordActivity : AppCompatActivity() {
         verifyCodeBtn.isEnabled = false
         lifecycleScope.launch(Dispatchers.IO) {
             try {
-                SupabaseClient.client.auth.verifyUserOtp(
+                SupabaseClient.client.auth.verifyOtp(
                     type = OtpType.Email.RECOVERY,
                     email = email,
                     token = code
@@ -147,7 +147,7 @@ class ForgotPasswordActivity : AppCompatActivity() {
         lifecycleScope.launch(Dispatchers.IO) {
             try {
                 SupabaseClient.client.auth.updateUser(
-                    updateConfig = {
+                    config = {
                         password = newPass
                     }
                 )
