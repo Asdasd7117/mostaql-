@@ -123,11 +123,13 @@ class ForgotPasswordActivity : AppCompatActivity() {
         verifyCodeBtn.isEnabled = false
         lifecycleScope.launch(Dispatchers.IO) {
             try {
-                SupabaseClient.client.auth.verifyToken(
-                    type = OtpType.Email.RECOVERY,
-                    email = email,
-                    token = code
-                )
+                // الطريقة القياسية المعتمدة عبر الـ Builder المتوافقة مع هيكل كلاسات تحديث البيانات في إصدار 2.5.4
+                SupabaseClient.client.auth.verifyOtp(
+                    type = OtpType.Email.RECOVERY
+                ) {
+                    this.email = email
+                    this.token = code
+                }
                 withContext(Dispatchers.Main) {
                     Toast.makeText(this@ForgotPasswordActivity, "تم التحقق بنجاح، أدخل كلمة المرور الجديدة", Toast.LENGTH_SHORT).show()
                     stepCodeLayout.visibility = View.GONE
