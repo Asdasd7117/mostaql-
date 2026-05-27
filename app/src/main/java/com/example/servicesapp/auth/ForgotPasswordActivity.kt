@@ -10,11 +10,11 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.example.servicesapp.R
 import com.example.servicesapp.SupabaseClient
+import io.github.jan.supabase.gotrue.OtpType
 import io.github.jan.supabase.gotrue.auth
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlin.reflect.full.declaredMemberFunctions
 
 class ForgotPasswordActivity : AppCompatActivity() {
 
@@ -69,12 +69,34 @@ class ForgotPasswordActivity : AppCompatActivity() {
         }
 
         verifyCodeBtn.setOnClickListener {
-            // عند الضغط على زر التحقق، سيقوم الكود بفحص المكتبة وطباعة الدوال فوراً
-            printCorrectFunctions()
+            val code = codeInput.text.toString().trim()
+            if (code.isEmpty() || code.length < 6) {
+                Toast.makeText(this, "الرجاء إدخال رمز صحيح مكون من 6 أرقام", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            verifyResetCode(userEmail, code)
         }
 
         changePasswordBtn.setOnClickListener {
-            finish()
+            val newPass = newPasswordInput.text.toString().trim()
+            val confirmPass = confirmPasswordInput.text.toString().trim()
+
+            if (newPass.isEmpty() || confirmPass.isEmpty()) {
+                Toast.makeText(this, "الرجاء ملء جميع الحقول", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+            if (newPass != confirmPass) {
+                Toast.makeText(this, "كلمتا المرور غير متطابقتين", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+            if (newPass.length < 6) {
+                Toast.makeText(this, "كلمة المرور يجب أن لا تقل عن 6 أحرف", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+            updateUserPassword(newPass)
         }
     }
 
@@ -84,7 +106,7 @@ class ForgotPasswordActivity : AppCompatActivity() {
             try {
                 SupabaseClient.client.auth.resetPasswordForEmail(email = email)
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(this@ForgotPasswordActivity, "تم إرسال الرمز! انتقل للخطوة التالية", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this@ForgotPasswordActivity, "تم إرسال رمز التحقق إلى بريدك الإلكتروني", Toast.LENGTH_LONG).show()
                     stepEmailLayout.visibility = View.GONE
                     stepCodeLayout.visibility = View.VISIBLE
                 }
@@ -97,29 +119,47 @@ class ForgotPasswordActivity : AppCompatActivity() {
         }
     }
 
-    private fun printCorrectFunctions() {
-        lifecycleScope.launch(Dispatchers.Default) {
+    private fun verifyResetCode(email: String, code: String) {
+        verifyCodeBtn.isEnabled = false
+        lifecycleScope.launch(Dispatchers.IO) {
             try {
-                // الوصول إلى كلاس الـ Auth الخاص بـ Kotlin بنظام الفحص المتقدم
-                val authClass = SupabaseClient.client.auth::class
-                
-                // جلب أسماء كافة الدوال التي تبدأ بكلمة verify أو تحتوي عليها
-                val functionNames = authClass.declaredMemberFunctions
-                    .map { it.name }
-                    .filter { it.contains("verify", ignoreCase = true) || it.contains("otp", ignoreCase = true) }
-                    .joinToString(", ")
-
+                // الاستدعاء المباشر والصحيح للدالة المتوفرة في نسختك بناءً على فحص الـ Reflection الميداني
+                SupabaseClient.client.auth.verifyEmailOtp(
+                    type = OtpType.Email.RECOVERY,
+                    email = email,
+                    token = code
+                )
                 withContext(Dispatchers.Main) {
-                    if (functionNames.isNotEmpty()) {
-                        // طباعة الدوال الحقيقية الموجودة داخل الـ SDK الخاص بك
-                        Toast.makeText(this@ForgotPasswordActivity, "الدوال المتوفرة: $functionNames", Toast.LENGTH_LONG).show()
-                    } else {
-                        Toast.makeText(this@ForgotPasswordActivity, "لم يتم العثور على دوال تحتوي على verify", Toast.LENGTH_LONG).show()
-                    }
+                    Toast.makeText(this@ForgotPasswordActivity, "تم التحقق بنجاح، أدخل كلمة المرور الجديدة", Toast.LENGTH_SHORT).show()
+                    stepCodeLayout.visibility = View.GONE
+                    stepPasswordLayout.visibility = View.VISIBLE
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(this@ForgotPasswordActivity, "فشل الفحص: ${e.message}", Toast.LENGTH_LONG).show()
+                    Toast.makeText(this@ForgotPasswordActivity, "الرمز غير صحيح أو منتهي الصلاحية", Toast.LENGTH_LONG).show()
+                    verifyCodeBtn.isEnabled = true
+                }
+            }
+        }
+    }
+
+    private fun updateUserPassword(newPass: String) {
+        changePasswordBtn.isEnabled = false
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                SupabaseClient.client.auth.updateUser(
+                    config = {
+                        password = newPass
+                    }
+                )
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(this@ForgotPasswordActivity, "تم تغيير كلمة المرور بنجاح", Toast.LENGTH_LONG).show()
+                    finish()
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(this@ForgotPasswordActivity, "فشل تغيير كلمة المرور: ${e.message}", Toast.LENGTH_LONG).show()
+                    changePasswordBtn.isEnabled = true
                 }
             }
         }
