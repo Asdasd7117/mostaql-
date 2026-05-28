@@ -9,6 +9,7 @@ import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.example.servicesapp.chat.ChatListActivity
+import io.github.jan.supabase.realtime.PostgresAction
 import io.github.jan.supabase.realtime.channel
 import io.github.jan.supabase.realtime.postgresChangeFlow
 import kotlinx.coroutines.CoroutineScope
@@ -23,7 +24,7 @@ class SupabaseRealtimeService(private val context: Context) {
 
             val channel = SupabaseClient.client.channel("messages-channel")
 
-            channel.postgresChangeFlow<Any>(
+            channel.postgresChangeFlow<PostgresAction>(
                 schema = "public"
             ).collect {
 
