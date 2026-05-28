@@ -6,8 +6,8 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import android.util.Log
 import androidx.core.app.NotificationCompat
-import androidx.core.app.NotificationManagerCompat
 import com.example.servicesapp.chat.ChatListActivity
 import io.github.jan.supabase.realtime.PostgresAction
 import io.github.jan.supabase.realtime.channel
@@ -21,17 +21,24 @@ class SupabaseRealtimeService(private val context: Context) {
     fun startListening() {
 
         CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val channel = SupabaseClient.client.channel("messages-channel")
 
-            val channel = SupabaseClient.client.channel("messages-channel")
+                channel.postgresChangeFlow<PostgresAction>(
+                    schema = "public"
+                 {
+                    table = "messages"
+                }).collect { action ->
+                    Log.d("SupabaseRealtime", "Data received: $action")
+                    showNotification("رسالة جديدة")
+                }
 
-            channel.postgresChangeFlow<PostgresAction>(
-                schema = "public"
-            ).collect {
-
-                showNotification("رسالة جديدة")
+                channel.subscribe()
+                Log.d("SupabaseRealtime", "Subscribed successfully")
+                
+            } catch (e: Exception) {
+                Log.e("SupabaseRealtime", "Error: ${e.message}")
             }
-
-            channel.subscribe()
         }
     }
 
@@ -50,16 +57,19 @@ class SupabaseRealtimeService(private val context: Context) {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
+        val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
 
             val notificationChannel = NotificationChannel(
                 channelId,
                 "Chat Notifications",
                 NotificationManager.IMPORTANCE_HIGH
-            )
-
-            val manager =
-                context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            ).apply {
+                description = "Chat Notifications Channel"
+                enableLights(true)
+                enableVibration(true)
+            }
 
             manager.createNotificationChannel(notificationChannel)
         }
@@ -73,7 +83,7 @@ class SupabaseRealtimeService(private val context: Context) {
             .setContentIntent(pendingIntent)
             .build()
 
-        NotificationManagerCompat.from(context)
-            .notify(System.currentTimeMillis().toInt(), notification)
+        manager.notify(System.currentTimeMillis().toInt(), notification)
+        Log.d("SupabaseRealtime", "Notification posted")
     }
 }
