@@ -1,0 +1,98 @@
+{
+  "project_info": {
+    "project_number": "331143916652",
+    "firebase_url": "https://lion-c8d91-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "lion-c8d91",
+    "storage_bucket": "lion-c8d91.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:331143916652:android:36009cef5ec9f3eb3f7c49",
+        "android_client_info": {
+          "package_name": "com.apliciming"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "331143916652-1trbg9lvgatr0i7tgcmcrdrcbhntthf5.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCfuWZz6_0aodCVUpb_EXqvjY7ZJRFclMM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "331143916652-1trbg9lvgatr0i7tgcmcrdrcbhntthf5.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:331143916652:android:f6d7aa5f7c7540df3f7c49",
+        "android_client_info": {
+          "package_name": "com.company"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "331143916652-1trbg9lvgatr0i7tgcmcrdrcbhntthf5.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCfuWZz6_0aodCVUpb_EXqvjY7ZJRFclMM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "331143916652-1trbg9lvgatr0i7tgcmcrdrcbhntthf5.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:331143916652:android:da46f280da09b37f3f7c49",
+        "android_client_info": {
+          "package_name": "lion.bdio"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "331143916652-1trbg9lvgatr0i7tgcmcrdrcbhntthf5.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCfuWZz6_0aodCVUpb_EXqvjY7ZJRFclMM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "331143916652-1trbg9lvgatr0i7tgcmcrdrcbhntthf5.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
