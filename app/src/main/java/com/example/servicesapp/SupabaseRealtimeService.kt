@@ -9,7 +9,7 @@ import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.example.servicesapp.chat.ChatListActivity
-import io.github.jan.supabase.realtime.channel
+import io.github.jan.supabase.realtime.PostgresAction
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -20,9 +20,18 @@ class SupabaseRealtimeService(private val context: Context) {
 
         CoroutineScope(Dispatchers.IO).launch {
 
-            val realtimeChannel = SupabaseClient.client.channel("public:messages")
+            val channel = SupabaseClient.client.realtime.channel("public:messages")
 
-            realtimeChannel.subscribe()
+            channel.postgresChangeFlow(
+                schema = "public",
+                table = "messages",
+                event = PostgresAction.INSERT
+            ).collect { change ->
+
+                val text = change.record["text"]?.toString() ?: "رسالة جديدة"
+
+                showNotification(text)
+            }
         }
     }
 
