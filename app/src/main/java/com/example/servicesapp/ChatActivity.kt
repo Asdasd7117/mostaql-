@@ -23,6 +23,7 @@ import io.github.jan.supabase.realtime.PostgresAction
 import io.github.jan.supabase.realtime.channel
 import io.github.jan.supabase.realtime.postgresChangeFlow
 import io.github.jan.supabase.realtime.RealtimeChannel
+import io.github.jan.supabase.realtime.decodeRecord
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -197,24 +198,27 @@ class ChatActivity : AppCompatActivity() {
                     filter = "conversation_id=eq.$convId"
                 }?.collect { action ->
                     if (action is PostgresAction.Insert) {
-                        val jsonString = action.record.toString()
-                        val message = Json.decodeFromString<Message>(jsonString)
-                        
-                        withContext(Dispatchers.Main) {
-                            if (messagesContainer.childCount == 1 && messagesContainer.getChildAt(0) is TextView) {
-                                val firstChild = messagesContainer.getChildAt(0) as TextView
-                                if (firstChild.text == "No messages yet...") {
-                                    messagesContainer.removeAllViews()
+                        try {
+                            val message = action.decodeRecord<Message>()
+                            
+                            withContext(Dispatchers.Main) {
+                                if (messagesContainer.childCount == 1 && messagesContainer.getChildAt(0) is TextView) {
+                                    val firstChild = messagesContainer.getChildAt(0) as TextView
+                                    if (firstChild.text == "No messages yet...") {
+                                        messagesContainer.removeAllViews()
+                                    }
+                                }
+                                addMessageBubble(message)
+                                scrollView.post { scrollView.fullScroll(ScrollView.FOCUS_DOWN) }
+                            }
+                            
+                            currentUserId?.let { uid ->
+                                if (message.senderId != uid) {
+                                    ChatRepository.markMessagesAsRead(convId, uid)
                                 }
                             }
-                            addMessageBubble(message)
-                            scrollView.post { scrollView.fullScroll(ScrollView.FOCUS_DOWN) }
-                        }
-                        
-                        currentUserId?.let { uid ->
-                            if (message.senderId != uid) {
-                                ChatRepository.markMessagesAsRead(convId, uid)
-                            }
+                        } catch (parseEx: Exception) {
+                            Log.e("ChatActivity", "Parsing crash avoided", parseEx)
                         }
                     }
                 }
