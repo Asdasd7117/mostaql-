@@ -195,30 +195,29 @@ class ChatActivity : AppCompatActivity() {
                 
                 realtimeChannel?.postgresChangeFlow<PostgresAction>(schema = "public") {
                     table = "messages"
-                    filter = "conversation_id=eq.$convId"
                 }?.collect { action ->
                     if (action is PostgresAction.Insert) {
                         try {
                             val message = action.decodeRecord<Message>()
-                            
-                            withContext(Dispatchers.Main) {
-                                if (messagesContainer.childCount == 1 && messagesContainer.getChildAt(0) is TextView) {
-                                    val firstChild = messagesContainer.getChildAt(0) as TextView
-                                    if (firstChild.text == "No messages yet...") {
-                                        messagesContainer.removeAllViews()
+                            if (message.conversationId == convId) {
+                                withContext(Dispatchers.Main) {
+                                    if (messagesContainer.childCount == 1 && messagesContainer.getChildAt(0) is TextView) {
+                                        val firstChild = messagesContainer.getChildAt(0) as TextView
+                                        if (firstChild.text == "No messages yet...") {
+                                            messagesContainer.removeAllViews()
+                                        }
                                     }
+                                    addMessageBubble(message)
+                                    scrollView.post { scrollView.fullScroll(ScrollView.FOCUS_DOWN) }
                                 }
-                                addMessageBubble(message)
-                                scrollView.post { scrollView.fullScroll(ScrollView.FOCUS_DOWN) }
-                            }
-                            
-                            currentUserId?.let { uid ->
-                                if (message.senderId != uid) {
-                                    ChatRepository.markMessagesAsRead(convId, uid)
+                                currentUserId?.let { uid ->
+                                    if (message.senderId != uid) {
+                                        ChatRepository.markMessagesAsRead(convId, uid)
+                                    }
                                 }
                             }
                         } catch (parseEx: Exception) {
-                            Log.e("ChatActivity", "Parsing crash avoided", parseEx)
+                            Log.e("ChatActivity", "Realtime parse error", parseEx)
                         }
                     }
                 }
@@ -281,6 +280,7 @@ class ChatActivity : AppCompatActivity() {
                     btnSend.isEnabled = true
                     if (success) {
                         etMessage.setText("")
+                        loadMessages()
                         updateLastMessageInConversation(convId, text)
                     }
                 }
