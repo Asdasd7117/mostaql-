@@ -24,11 +24,9 @@ class SupabaseRealtimeService(private val context: Context) {
             try {
                 val channel = SupabaseClient.client.channel("messages-channel")
 
-                channel.postgresChangeFlow<PostgresAction>(
-                    schema = "public"
-                 {
+                channel.postgresChangeFlow<PostgresAction>(schema = "public") {
                     table = "messages"
-                }).collect { action ->
+                }.collect { action ->
                     Log.d("SupabaseRealtime", "Data received: $action")
                     showNotification("رسالة جديدة")
                 }
