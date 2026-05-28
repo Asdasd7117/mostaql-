@@ -19,6 +19,10 @@ import com.example.servicesapp.models.Conversation
 import com.example.servicesapp.models.Message
 import io.github.jan.supabase.gotrue.auth
 import io.github.jan.supabase.postgrest.from
+import io.github.jan.supabase.realtime.PostgresAction
+import io.github.jan.supabase.realtime.channel
+import io.github.jan.supabase.realtime.postgresChangeFlow
+import io.github.jan.supabase.realtime.RealtimeChannel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -27,6 +31,7 @@ import kotlinx.serialization.json.put
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.Json
 import kotlinx.datetime.Clock
 
 class ChatActivity : AppCompatActivity() {
@@ -41,6 +46,7 @@ class ChatActivity : AppCompatActivity() {
     private var otherUserId: String? = null
     private var currentUserId: String? = null
     private var otherUsername: String? = null
+    private var realtimeChannel: RealtimeChannel? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -85,6 +91,7 @@ class ChatActivity : AppCompatActivity() {
         }
         
         loadMessages()
+        observeRealtimeMessages()
     }
 
     private fun fetchConversationDetails(projectName: String?) {
@@ -119,7 +126,7 @@ class ChatActivity : AppCompatActivity() {
                         filter { eq("user_id", uid) }
                     }
 
-                val jsonElement = kotlinx.serialization.json.Json.parseToJsonElement(response.data)
+                val jsonElement = Json.parseToJsonElement(response.data)
                 
                 var nameFromDb: String? = null
                 if (jsonElement is kotlinx.serialization.json.JsonArray && jsonElement.isNotEmpty()) {
@@ -179,6 +186,46 @@ class ChatActivity : AppCompatActivity() {
         }
     }
 
+    private fun observeRealtimeMessages() {
+        val convId = conversationId ?: return
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                realtimeChannel = SupabaseClient.client.channel("chat-room-$convId")
+                
+                realtimeChannel?.postgresChangeFlow<PostgresAction>(schema = "public") {
+                    table = "messages"
+                    filter = "conversation_id=eq.$convId"
+                }?.collect { action ->
+                    if (action is PostgresAction.Insert) {
+                        val jsonString = action.record.toString()
+                        val message = Json.decodeFromString<Message>(jsonString)
+                        
+                        withContext(Dispatchers.Main) {
+                            if (messagesContainer.childCount == 1 && messagesContainer.getChildAt(0) is TextView) {
+                                val firstChild = messagesContainer.getChildAt(0) as TextView
+                                if (firstChild.text == "No messages yet...") {
+                                    messagesContainer.removeAllViews()
+                                }
+                            }
+                            addMessageBubble(message)
+                            scrollView.post { scrollView.fullScroll(ScrollView.FOCUS_DOWN) }
+                        }
+                        
+                        currentUserId?.let { uid ->
+                            if (message.senderId != uid) {
+                                ChatRepository.markMessagesAsRead(convId, uid)
+                            }
+                        }
+                    }
+                }
+                
+                realtimeChannel?.subscribe()
+            } catch (e: Exception) {
+                Log.e("ChatActivity", "Realtime connect error", e)
+            }
+        }
+    }
+
     private fun addMessageBubble(msg: Message) {
         val isMyMessage = msg.senderId == currentUserId
         val bubbleContainer = LinearLayout(this).apply {
@@ -230,7 +277,6 @@ class ChatActivity : AppCompatActivity() {
                     btnSend.isEnabled = true
                     if (success) {
                         etMessage.setText("")
-                        loadMessages()
                         updateLastMessageInConversation(convId, text)
                     }
                 }
@@ -254,5 +300,16 @@ class ChatActivity : AppCompatActivity() {
                 Log.e("ChatActivity", "Update failed", e) 
             }
         }
+    }
+
+    override fun onDestroy() {
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                realtimeChannel?.unsubscribe()
+            } catch (e: Exception) {
+                Log.e("ChatActivity", "Unsubscribe error", e)
+            }
+        }
+        super.onDestroy()
     }
 }
