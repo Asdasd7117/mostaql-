@@ -23,7 +23,7 @@ class SupabaseRealtimeService(private val context: Context) {
 
             val channel = SupabaseClient.client.channel("messages-channel")
 
-            channel.postgresChangeFlow(
+            channel.postgresChangeFlow<Any>(
                 schema = "public"
             ).collect {
 
