@@ -9,8 +9,7 @@ import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.example.servicesapp.chat.ChatListActivity
-import io.github.jan.supabase.realtime.postgresChangeFlow
-import io.github.jan.supabase.realtime.realtime
+import io.github.jan.supabase.realtime.channel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -19,24 +18,11 @@ class SupabaseRealtimeService(private val context: Context) {
 
     fun startListening() {
 
-        val channel = SupabaseClient.client.realtime.channel("messages-channel")
-
         CoroutineScope(Dispatchers.IO).launch {
 
-            channel.postgresChangeFlow<Any>(
-                schema = "public",
-                table = "messages",
-                event = io.github.jan.supabase.realtime.PostgresAction.INSERT
-            ).collect { payload ->
+            val realtimeChannel = SupabaseClient.client.channel("public:messages")
 
-                val data = payload.record as Map<*, *>
-
-                val messageText = data["text"]?.toString() ?: "رسالة جديدة"
-
-                showNotification(messageText)
-            }
-
-            channel.subscribe()
+            realtimeChannel.subscribe()
         }
     }
 
@@ -63,7 +49,9 @@ class SupabaseRealtimeService(private val context: Context) {
                 NotificationManager.IMPORTANCE_HIGH
             )
 
-            val manager = context.getSystemService(NotificationManager::class.java)
+            val manager =
+                context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
             manager.createNotificationChannel(channel)
         }
 
@@ -71,8 +59,8 @@ class SupabaseRealtimeService(private val context: Context) {
             .setSmallIcon(R.mipmap.ic_launcher)
             .setContentTitle("رسالة جديدة")
             .setContentText(message)
-            .setAutoCancel(true)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setAutoCancel(true)
             .setContentIntent(pendingIntent)
             .build()
 
