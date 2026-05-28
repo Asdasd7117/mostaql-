@@ -9,7 +9,8 @@ import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.example.servicesapp.chat.ChatListActivity
-import io.github.jan.supabase.realtime.PostgresAction
+import io.github.jan.supabase.realtime.channel
+import io.github.jan.supabase.realtime.postgresChangeFlow
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -20,18 +21,16 @@ class SupabaseRealtimeService(private val context: Context) {
 
         CoroutineScope(Dispatchers.IO).launch {
 
-            val channel = SupabaseClient.client.realtime.channel("public:messages")
+            val channel = SupabaseClient.client.channel("messages-channel")
 
             channel.postgresChangeFlow(
-                schema = "public",
-                table = "messages",
-                event = PostgresAction.INSERT
-            ).collect { change ->
+                schema = "public"
+            ).collect {
 
-                val text = change.record["text"]?.toString() ?: "رسالة جديدة"
-
-                showNotification(text)
+                showNotification("رسالة جديدة")
             }
+
+            channel.subscribe()
         }
     }
 
@@ -52,7 +51,7 @@ class SupabaseRealtimeService(private val context: Context) {
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
 
-            val channel = NotificationChannel(
+            val notificationChannel = NotificationChannel(
                 channelId,
                 "Chat Notifications",
                 NotificationManager.IMPORTANCE_HIGH
@@ -61,7 +60,7 @@ class SupabaseRealtimeService(private val context: Context) {
             val manager =
                 context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
-            manager.createNotificationChannel(channel)
+            manager.createNotificationChannel(notificationChannel)
         }
 
         val notification = NotificationCompat.Builder(context, channelId)
