@@ -8,8 +8,11 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import android.os.Handler
 import android.os.IBinder
+import android.os.Looper
 import android.util.Log
+import android.widget.Toast
 import androidx.core.app.NotificationCompat
 import com.example.servicesapp.R
 import com.example.servicesapp.SupabaseClient
@@ -31,6 +34,13 @@ class SupabaseRealtimeService : Service() {
     private val channelId = "foreground_chat_channel"
     private var realtimeChannel: RealtimeChannel? = null
 
+    // دالة مساعدة لإظهار الـ Toast بأمان من داخل العمليات الخلفية (Background Threads)
+    private fun showToastOnMainThread(message: String) {
+        Handler(Looper.getMainLooper()).post {
+            Toast.makeText(applicationContext, message, Toast.LENGTH_LONG).show()
+        }
+    }
+
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
@@ -40,6 +50,8 @@ class SupabaseRealtimeService : Service() {
         val notification = createServiceNotification()
         startForeground(101, notification)
 
+        // تنبيه بأن الخدمة بدأت الاستماع فعلياً
+        showToastOnMainThread("📱 الخدمة الخلفية بدأت الاستماع الآن...")
         startListeningToMessages()
 
         return START_STICKY
@@ -48,10 +60,8 @@ class SupabaseRealtimeService : Service() {
     private fun startListeningToMessages() {
         serviceScope.launch {
             try {
-                // التأكد من جلب الجلسة وتخزينها للخدمة
                 SupabaseClient.client.realtime.connect()
                 
-                // التعديل الجوهري الثابت: إنشاء قناة استماع عامة ومباشرة لجدول الرسائل بالكامل لقاعدة البيانات
                 realtimeChannel = SupabaseClient.client.realtime.channel("messages-database-channel")
                 
                 val changeFlow = realtimeChannel?.postgresChangeFlow<PostgresAction>(schema = "public") {
@@ -59,36 +69,49 @@ class SupabaseRealtimeService : Service() {
                 }
                 
                 realtimeChannel?.subscribe()
+                showToastOnMainThread("✅ متصل بـ سوبابيز ومستعد لاستقبال الأحداث!")
 
                 changeFlow?.collect { action ->
                     if (action is PostgresAction.Insert) {
+                        showToastOnMainThread("🔔 التقطت الخدمة رسالة جديدة قادمة للسيرفر!")
                         try {
                             val record = action.record
                             
-                            // قراءة البيانات الخام الآمنة لتجنب أي انهيار صامت في الخلفية
                             val text = record["message_text"]?.jsonPrimitive?.content ?: ""
                             val senderId = record["sender_id"]?.jsonPrimitive?.content ?: ""
                             val conversationId = record["conversation_id"]?.jsonPrimitive?.content?.toLongOrNull() ?: 0L
                             
                             val currentUserId = SupabaseClient.client.auth.currentSessionOrNull()?.user?.id?.toString()
 
-                            // التحقق: إذا كانت الرسالة ليست مني، ونصها غير فارغ
-                            if (!currentUserId.isNullOrBlank() && senderId != currentUserId && text.isNotEmpty()) {
-                                showIncomingMessageNotification(text, conversationId, senderId)
+                            // فحص الشروط وإظهار رسالة توضيحية فورية على الشاشة عند الفشل
+                            if (currentUserId.isNullOrBlank()) {
+                                showToastOnMainThread("❌ فشل الإشعار: لم يتم العثور على جلسة مستخدم (currentUserId فارغ)!")
+                                return@collect
                             }
+                            if (senderId == currentUserId) {
+                                showToastOnMainThread("🛑 تم تخطي الإشعار: الرسالة مرسلة منك أنت.")
+                                return@collect
+                            }
+                            if (text.isEmpty()) {
+                                showToastOnMainThread("❌ تم تخطي الإشعار: نص الرسالة المستلمة فارغ.")
+                                return@collect
+                            }
+
+                            showToastOnMainThread("🎉 نجحت الشروط! جاري بناء وإظهار الإشعار المرئي لنص: $text")
+                            showIncomingMessageNotification(text, conversationId, senderId)
+
                         } catch (parseEx: Exception) {
-                            Log.e("RealtimeService", "Error parsing background record", parseEx)
+                            showToastOnMainThread("❌ خطأ أثناء معالجة بيانات السجل!")
                         }
                     }
                 }
             } catch (e: Exception) {
-                Log.e("RealtimeService", "Service Realtime connect error", e)
+                showToastOnMainThread("❌ انهيار اتصال الـ Realtime بالخلفية: ${e.localizedMessage}")
             }
         }
     }
 
     private fun showIncomingMessageNotification(messageText: String, convId: Long, senderId: String) {
-        // تجهيز الـ Intent لفتح المحادثة مباشرة عند الضغط على الإشعار
         val intent = Intent(this, ChatActivity::class.java).apply {
             putExtra("conversationId", convId)
             putExtra("otherUserId", senderId)
@@ -102,7 +125,6 @@ class SupabaseRealtimeService : Service() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        // بناء إشعار الرسالة الواردة (HIGH لكي يظهر أعلى الشاشة بصوت)
         val chatNotification = NotificationCompat.Builder(this, channelId)
             .setSmallIcon(android.R.drawable.stat_notify_chat)
             .setContentTitle("رسالة جديدة")
@@ -132,7 +154,7 @@ class SupabaseRealtimeService : Service() {
             val channel = NotificationChannel(
                 channelId,
                 "Chat Background Notifications",
-                NotificationManager.IMPORTANCE_HIGH // تحويلها إلى HIGH لتسمح بالنوافذ المنبثقة للرسائل الواردة
+                NotificationManager.IMPORTANCE_HIGH
             ).apply {
                 enableLights(true)
                 enableVibration(true)
@@ -143,11 +165,12 @@ class SupabaseRealtimeService : Service() {
     }
 
     override fun onDestroy() {
+        showToastOnMainThread("⚠️ تم إغلاق وتدمير الخدمة الخلفية!")
         serviceScope.launch {
             try {
                 realtimeChannel?.unsubscribe()
             } catch (e: Exception) {
-                Log.e("RealtimeService", "Unsubscribe error on destroy", e)
+                // خطأ غير مؤثر عند التدمير
             }
             serviceScope.cancel()
         }
