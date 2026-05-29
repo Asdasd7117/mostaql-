@@ -54,8 +54,43 @@ class ChatActivity : AppCompatActivity() {
         setContentView(R.layout.activity_chat)
 
         initViews()
-        loadData()
         setupListeners()
+
+        conversationId = intent.getLongExtra("conversationId", -1L).takeIf { it != -1L }
+        otherUserId = intent.getStringExtra("otherUserId")
+        val projectName = intent.getStringExtra("projectName")
+
+        if (conversationId == null) {
+            Toast.makeText(this, "Error: Invalid ID", Toast.LENGTH_SHORT).show()
+            finish()
+            return
+        }
+
+        lifecycleScope.launch {
+            try {
+                SupabaseClient.client.auth.loadFromStorage()
+                currentUserId = SupabaseClient.client.auth.currentSessionOrNull()?.user?.id?.toString()
+
+                if (currentUserId.isNullOrBlank()) {
+                    Toast.makeText(this@ChatActivity, "Error: No Session", Toast.LENGTH_SHORT).show()
+                    finish()
+                    return@launch
+                }
+
+                if (otherUserId.isNullOrBlank()) {
+                    fetchConversationDetails(projectName)
+                } else {
+                    fetchOtherUsername(projectName)
+                }
+
+                loadMessages()
+                observeRealtimeMessages()
+
+            } catch (e: Exception) {
+                Toast.makeText(this@ChatActivity, "Error loading session: ${e.message}", Toast.LENGTH_SHORT).show()
+                finish()
+            }
+        }
     }
 
     private fun initViews() {
