@@ -1,4 +1,5 @@
 package com.example.servicesapp
+import com.example.servicesapp.chat.SupabaseRealtimeService
 
 import android.content.Intent
 import android.graphics.Color
