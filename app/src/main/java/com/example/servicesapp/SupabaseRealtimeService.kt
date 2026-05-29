@@ -16,7 +16,6 @@ import android.widget.Toast
 import androidx.core.app.NotificationCompat
 import com.example.servicesapp.R
 import com.example.servicesapp.SupabaseClient
-import io.github.jan.supabase.gotrue.auth
 import io.github.jan.supabase.realtime.PostgresAction
 import io.github.jan.supabase.realtime.RealtimeChannel
 import io.github.jan.supabase.realtime.channel
@@ -34,6 +33,11 @@ class SupabaseRealtimeService : Service() {
     private val channelId = "foreground_chat_channel"
     private var realtimeChannel: RealtimeChannel? = null
 
+    companion object {
+        // متغير استاتيكي لحفظ معرف المستخدم الحالي حتى لا نعتمد على الـ Auth في الخلفية
+        var currentUserId: String? = null
+    }
+
     private fun showToastOnMainThread(message: String) {
         Handler(Looper.getMainLooper()).post {
             Toast.makeText(applicationContext, message, Toast.LENGTH_LONG).show()
@@ -46,10 +50,15 @@ class SupabaseRealtimeService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        // جلب الـ userId الممرر من الواجهة وحفظه
+        val receivedId = intent?.getStringExtra("USER_ID")
+        if (!receivedId.isNullOrBlank()) {
+            currentUserId = receivedId
+        }
+
         val notification = createServiceNotification()
         startForeground(101, notification)
 
-        showToastOnMainThread("📱 الخدمة الخلفية بدأت الاستماع الآن...")
         startListeningToMessages()
 
         return START_STICKY
@@ -58,13 +67,6 @@ class SupabaseRealtimeService : Service() {
     private fun startListeningToMessages() {
         serviceScope.launch {
             try {
-                // خطوة الإصلاح الجوهرية: تحميل الجلسة من التخزين المحرك للخدمة الخلفية أولاً
-                try {
-                    SupabaseClient.client.auth.loadFromStorage()
-                } catch (storageEx: Exception) {
-                    Log.e("RealtimeService", "Error loading storage in background", storageEx)
-                }
-
                 SupabaseClient.client.realtime.connect()
                 
                 realtimeChannel = SupabaseClient.client.realtime.channel("messages-database-channel")
@@ -74,7 +76,6 @@ class SupabaseRealtimeService : Service() {
                 }
                 
                 realtimeChannel?.subscribe()
-                showToastOnMainThread("✅ متصل بـ سوبابيز ومستعد لاستقبال الأحداث!")
 
                 changeFlow?.collect { action ->
                     if (action is PostgresAction.Insert) {
@@ -85,22 +86,22 @@ class SupabaseRealtimeService : Service() {
                             val senderId = record["sender_id"]?.jsonPrimitive?.content ?: ""
                             val conversationId = record["conversation_id"]?.jsonPrimitive?.content?.toLongOrNull() ?: 0L
                             
-                            // تأكيد استدعاء الجلسة من الـ Client بعد تحميلها
-                            val currentUserId = SupabaseClient.client.auth.currentSessionOrNull()?.user?.id?.toString()
+                            // الفحص بالاعتماد على المتغير الممرر المضمون
+                            val myId = currentUserId
 
-                            if (currentUserId.isNullOrBlank()) {
-                                showToastOnMainThread("❌ فشل الإشعار: لم يتم العثور على جلسة مستخدم (currentUserId فارغ)!")
+                            if (myId.isNullOrBlank()) {
+                                showToastOnMainThread("❌ فشل الإشعار: معرف المستخدم الحالي غير متوفر في الخدمة!")
                                 return@collect
                             }
-                            if (senderId == currentUserId) {
-                                // تم تخطي الإشعار بشكل طبيعي لأن المستخدم هو من أرسل الرسالة
+                            if (senderId == myId) {
+                                // الرسالة صادرة من نفس الحساب، يتم تخطيها طبيعياً دون توست خطأ
                                 return@collect
                             }
                             if (text.isEmpty()) {
                                 return@collect
                             }
 
-                            // إذا تخطى الشروط بنجاح، يظهر الإشعار بدون مشكلة
+                            // عرض الإشعار فوراً عند مطابقة الشروط
                             showIncomingMessageNotification(text, conversationId, senderId)
 
                         } catch (parseEx: Exception) {
