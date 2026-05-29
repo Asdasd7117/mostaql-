@@ -34,7 +34,6 @@ class SupabaseRealtimeService : Service() {
     private val channelId = "foreground_chat_channel"
     private var realtimeChannel: RealtimeChannel? = null
 
-    // دالة مساعدة لإظهار الـ Toast بأمان من داخل العمليات الخلفية (Background Threads)
     private fun showToastOnMainThread(message: String) {
         Handler(Looper.getMainLooper()).post {
             Toast.makeText(applicationContext, message, Toast.LENGTH_LONG).show()
@@ -50,7 +49,6 @@ class SupabaseRealtimeService : Service() {
         val notification = createServiceNotification()
         startForeground(101, notification)
 
-        // تنبيه بأن الخدمة بدأت الاستماع فعلياً
         showToastOnMainThread("📱 الخدمة الخلفية بدأت الاستماع الآن...")
         startListeningToMessages()
 
@@ -60,6 +58,13 @@ class SupabaseRealtimeService : Service() {
     private fun startListeningToMessages() {
         serviceScope.launch {
             try {
+                // خطوة الإصلاح الجوهرية: تحميل الجلسة من التخزين المحرك للخدمة الخلفية أولاً
+                try {
+                    SupabaseClient.client.auth.loadFromStorage()
+                } catch (storageEx: Exception) {
+                    Log.e("RealtimeService", "Error loading storage in background", storageEx)
+                }
+
                 SupabaseClient.client.realtime.connect()
                 
                 realtimeChannel = SupabaseClient.client.realtime.channel("messages-database-channel")
@@ -73,7 +78,6 @@ class SupabaseRealtimeService : Service() {
 
                 changeFlow?.collect { action ->
                     if (action is PostgresAction.Insert) {
-                        showToastOnMainThread("🔔 التقطت الخدمة رسالة جديدة قادمة للسيرفر!")
                         try {
                             val record = action.record
                             
@@ -81,23 +85,22 @@ class SupabaseRealtimeService : Service() {
                             val senderId = record["sender_id"]?.jsonPrimitive?.content ?: ""
                             val conversationId = record["conversation_id"]?.jsonPrimitive?.content?.toLongOrNull() ?: 0L
                             
+                            // تأكيد استدعاء الجلسة من الـ Client بعد تحميلها
                             val currentUserId = SupabaseClient.client.auth.currentSessionOrNull()?.user?.id?.toString()
 
-                            // فحص الشروط وإظهار رسالة توضيحية فورية على الشاشة عند الفشل
                             if (currentUserId.isNullOrBlank()) {
                                 showToastOnMainThread("❌ فشل الإشعار: لم يتم العثور على جلسة مستخدم (currentUserId فارغ)!")
                                 return@collect
                             }
                             if (senderId == currentUserId) {
-                                showToastOnMainThread("🛑 تم تخطي الإشعار: الرسالة مرسلة منك أنت.")
+                                // تم تخطي الإشعار بشكل طبيعي لأن المستخدم هو من أرسل الرسالة
                                 return@collect
                             }
                             if (text.isEmpty()) {
-                                showToastOnMainThread("❌ تم تخطي الإشعار: نص الرسالة المستلمة فارغ.")
                                 return@collect
                             }
 
-                            showToastOnMainThread("🎉 نجحت الشروط! جاري بناء وإظهار الإشعار المرئي لنص: $text")
+                            // إذا تخطى الشروط بنجاح، يظهر الإشعار بدون مشكلة
                             showIncomingMessageNotification(text, conversationId, senderId)
 
                         } catch (parseEx: Exception) {
@@ -165,12 +168,11 @@ class SupabaseRealtimeService : Service() {
     }
 
     override fun onDestroy() {
-        showToastOnMainThread("⚠️ تم إغلاق وتدمير الخدمة الخلفية!")
         serviceScope.launch {
             try {
                 realtimeChannel?.unsubscribe()
             } catch (e: Exception) {
-                // خطأ غير مؤثر عند التدمير
+                // استثناء صامت عند التدمير
             }
             serviceScope.cancel()
         }
