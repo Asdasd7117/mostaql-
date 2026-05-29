@@ -1,87 +1,139 @@
-package com.example.servicesapp
+package com.example.servicesapp.chat
 
+import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
+import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
-import com.example.servicesapp.chat.ChatListActivity
+import com.example.servicesapp.R
+import com.example.servicesapp.SupabaseClient
+import io.github.jan.supabase.gotrue.auth
 import io.github.jan.supabase.realtime.PostgresAction
+import io.github.jan.supabase.realtime.RealtimeChannel
 import io.github.jan.supabase.realtime.channel
 import io.github.jan.supabase.realtime.postgresChangeFlow
+import io.github.jan.supabase.realtime.realtime
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.jsonPrimitive
 
-class SupabaseRealtimeService(private val context: Context) {
+class SupabaseRealtimeService : Service() {
 
-    fun startListening() {
+    private val serviceScope = CoroutineScope(Dispatchers.IO)
+    private val channelId = "foreground_chat_channel"
+    private var realtimeChannel: RealtimeChannel? = null
 
-        CoroutineScope(Dispatchers.IO).launch {
+    override fun onCreate() {
+        super.onCreate()
+        createNotificationChannel()
+    }
+
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        val notification = createServiceNotification()
+        startForeground(101, notification)
+
+        startListeningToMessages()
+
+        return START_STICKY
+    }
+
+    private fun startListeningToMessages() {
+        serviceScope.launch {
             try {
-                val channel = SupabaseClient.client.channel("messages-channel")
-
-                channel.postgresChangeFlow<PostgresAction>(schema = "public") {
-                    table = "messages"
-                }.collect { action ->
-                    Log.d("SupabaseRealtime", "Data received: $action")
-                    showNotification("رسالة جديدة")
-                }
-
-                channel.subscribe()
-                Log.d("SupabaseRealtime", "Subscribed successfully")
+                SupabaseClient.client.realtime.connect()
                 
+                realtimeChannel = SupabaseClient.client.realtime.channel("global-notification-room")
+                
+                val changeFlow = realtimeChannel?.postgresChangeFlow<PostgresAction>(schema = "public") {
+                    table = "messages"
+                }
+                
+                realtimeChannel?.subscribe()
+
+                changeFlow?.collect { action ->
+                    if (action is PostgresAction.Insert) {
+                        try {
+                            val record = action.record
+                            val text = record["message_text"]?.jsonPrimitive?.content ?: ""
+                            val senderId = record["sender_id"]?.jsonPrimitive?.content ?: ""
+                            val currentUserId = SupabaseClient.client.auth.currentSessionOrNull()?.user?.id?.toString()
+
+                            if (!currentUserId.isNullOrBlank() && senderId != currentUserId && text.isNotEmpty()) {
+                                showIncomingMessageNotification(text)
+                            }
+                        } catch (parseEx: Exception) {
+                            Log.e("RealtimeService", "Error parsing background record", parseEx)
+                        }
+                    }
+                }
             } catch (e: Exception) {
-                Log.e("SupabaseRealtime", "Error: ${e.message}")
+                Log.e("RealtimeService", "Service Realtime connect error", e)
             }
         }
     }
 
-    private fun showNotification(message: String) {
-
-        val channelId = "chat_channel"
-
-        val intent = Intent(context, ChatListActivity::class.java).apply {
+    private fun showIncomingMessageNotification(messageText: String) {
+        val intent = Intent(this, ChatActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         }
-
         val pendingIntent = PendingIntent.getActivity(
-            context,
-            0,
-            intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-
-            val notificationChannel = NotificationChannel(
-                channelId,
-                "Chat Notifications",
-                NotificationManager.IMPORTANCE_HIGH
-            ).apply {
-                description = "Chat Notifications Channel"
-                enableLights(true)
-                enableVibration(true)
-            }
-
-            manager.createNotificationChannel(notificationChannel)
-        }
-
-        val notification = NotificationCompat.Builder(context, channelId)
-            .setSmallIcon(R.mipmap.ic_launcher)
+        val chatNotification = NotificationCompat.Builder(this, channelId)
+            .setSmallIcon(android.R.drawable.stat_notify_chat)
             .setContentTitle("رسالة جديدة")
-            .setContentText(message)
+            .setContentText(messageText)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setAutoCancel(true)
             .setContentIntent(pendingIntent)
             .build()
 
-        manager.notify(System.currentTimeMillis().toInt(), notification)
-        Log.d("SupabaseRealtime", "Notification posted")
+        val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        manager.notify(System.currentTimeMillis().toInt(), chatNotification)
     }
+
+    private fun createServiceNotification(): Notification {
+        return NotificationCompat.Builder(this, channelId)
+            .setSmallIcon(android.R.drawable.ic_menu_manage)
+            .setContentTitle("خدمة المراسلة الفورية")
+            .setContentText("التطبيق مستعد لاستقبال الرسائل في الخلفية")
+            .setPriority(NotificationCompat.PRIORITY_MIN)
+            .setOngoing(true)
+            .build()
+    }
+
+    private fun createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                channelId,
+                "Chat Background Notifications",
+                NotificationManager.IMPORTANCE_DEFAULT
+            )
+            val manager = getSystemService(NotificationManager::class.java)
+            manager?.createNotificationChannel(channel)
+        }
+    }
+
+    override fun onDestroy() {
+        serviceScope.launch {
+            try {
+                realtimeChannel?.unsubscribe()
+            } catch (e: Exception) {
+                Log.e("RealtimeService", "Unsubscribe error on destroy", e)
+            }
+            serviceScope.cancel()
+        }
+        super.onDestroy()
+    }
+
+    override fun onBind(intent: Intent?): IBinder? = null
 }
