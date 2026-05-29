@@ -210,6 +210,7 @@ class ChatActivity : AppCompatActivity() {
                                 val incomingConvId = record["conversation_id"]?.jsonPrimitive?.content?.toLongOrNull()
                                 val text = record["message_text"]?.jsonPrimitive?.content ?: ""
                                 val senderId = record["sender_id"]?.jsonPrimitive?.content ?: ""
+                                val receiverId = record["receiver_id"]?.jsonPrimitive?.content ?: ""
                                 val id = record["id"]?.jsonPrimitive?.content?.toLongOrNull() ?: 0L
                                 
                                 if (incomingConvId == convId && text.isNotEmpty()) {
@@ -217,6 +218,7 @@ class ChatActivity : AppCompatActivity() {
                                         id = id,
                                         conversationId = convId,
                                         senderId = senderId,
+                                        receiverId = receiverId,
                                         messageText = text
                                     )
                                     
@@ -307,7 +309,7 @@ class ChatActivity : AppCompatActivity() {
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
                     btnSend.isEnabled = true
-                    Toast.makeText(this@ChatMessage, "Send Error: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
+                    Toast.makeText(this@ChatActivity, "Send Error: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
                 }
             }
         }
