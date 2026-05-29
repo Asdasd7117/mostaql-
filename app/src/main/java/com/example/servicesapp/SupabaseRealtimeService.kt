@@ -48,9 +48,11 @@ class SupabaseRealtimeService : Service() {
     private fun startListeningToMessages() {
         serviceScope.launch {
             try {
+                // التأكد من جلب الجلسة وتخزينها للخدمة
                 SupabaseClient.client.realtime.connect()
                 
-                realtimeChannel = SupabaseClient.client.realtime.channel("global-notification-room")
+                // التعديل الجوهري: الاستماع لقناة عامة لكل الرسائل بدون حصرها في غرفة محددة
+                realtimeChannel = SupabaseClient.client.realtime.channel("global-messages-channel")
                 
                 val changeFlow = realtimeChannel?.postgresChangeFlow<PostgresAction>(schema = "public") {
                     table = "messages"
@@ -62,12 +64,17 @@ class SupabaseRealtimeService : Service() {
                     if (action is PostgresAction.Insert) {
                         try {
                             val record = action.record
+                            
+                            // قراءة البيانات الخام الآمنة لتجنب أي انهيار صامت في الخلفية
                             val text = record["message_text"]?.jsonPrimitive?.content ?: ""
                             val senderId = record["sender_id"]?.jsonPrimitive?.content ?: ""
+                            val conversationId = record["conversation_id"]?.jsonPrimitive?.content?.toLongOrNull() ?: 0L
+                            
                             val currentUserId = SupabaseClient.client.auth.currentSessionOrNull()?.user?.id?.toString()
 
+                            // التحقق: إذا كانت الرسالة ليست مني، ونصها غير فارغ
                             if (!currentUserId.isNullOrBlank() && senderId != currentUserId && text.isNotEmpty()) {
-                                showIncomingMessageNotification(text)
+                                showIncomingMessageNotification(text, conversationId, senderId)
                             }
                         } catch (parseEx: Exception) {
                             Log.e("RealtimeService", "Error parsing background record", parseEx)
@@ -80,25 +87,34 @@ class SupabaseRealtimeService : Service() {
         }
     }
 
-    private fun showIncomingMessageNotification(messageText: String) {
+    private fun showIncomingMessageNotification(messageText: String, convId: Long, senderId: String) {
+        // تجهيز الـ Intent لفتح المحادثة مباشرة عند الضغط على الإشعار
         val intent = Intent(this, ChatActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            putExtra("conversationId", convId)
+            putExtra("otherUserId", senderId)
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
         }
+        
         val pendingIntent = PendingIntent.getActivity(
-            this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            this, 
+            convId.toInt(), 
+            intent, 
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
+        // بناء إشعار الرسالة الواردة (HIGH لكي يظهر أعلى الشاشة بصوت)
         val chatNotification = NotificationCompat.Builder(this, channelId)
             .setSmallIcon(android.R.drawable.stat_notify_chat)
             .setContentTitle("رسالة جديدة")
             .setContentText(messageText)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setDefaults(Notification.DEFAULT_ALL)
             .setAutoCancel(true)
             .setContentIntent(pendingIntent)
             .build()
 
         val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        manager.notify(System.currentTimeMillis().toInt(), chatNotification)
+        manager.notify(convId.toInt(), chatNotification)
     }
 
     private fun createServiceNotification(): Notification {
@@ -116,8 +132,11 @@ class SupabaseRealtimeService : Service() {
             val channel = NotificationChannel(
                 channelId,
                 "Chat Background Notifications",
-                NotificationManager.IMPORTANCE_DEFAULT
-            )
+                NotificationManager.IMPORTANCE_HIGH // تحويلها إلى HIGH لتسمح بالنوافذ المنبثقة للرسائل الواردة
+            ).apply {
+                enableLights(true)
+                enableVibration(true)
+            }
             val manager = getSystemService(NotificationManager::class.java)
             manager?.createNotificationChannel(channel)
         }
