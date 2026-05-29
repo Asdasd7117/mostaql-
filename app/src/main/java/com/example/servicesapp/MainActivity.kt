@@ -1,8 +1,9 @@
 package com.example.servicesapp
-import com.example.servicesapp.chat.SupabaseRealtimeService
 
+import com.example.servicesapp.chat.SupabaseRealtimeService
 import android.content.Intent
 import android.graphics.Color
+import android.os.Build
 import android.os.Bundle
 import android.view.Gravity
 import android.view.View
@@ -50,7 +51,17 @@ class MainActivity : AppCompatActivity() {
         projectsContainer = findViewById(R.id.projectsContainer)
         btnMyProjects = findViewById(R.id.btnMyProjects)
 
-        SupabaseRealtimeService(this).startListening()
+        // التصحيح الجذري والآمن لتشغيل الخدمة عبر الـ Intent وفقاً للمعاير النظامية لأندرويد
+        val serviceIntent = Intent(this, SupabaseRealtimeService::class.java)
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                startForegroundService(serviceIntent)
+            } else {
+                startService(serviceIntent)
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
 
         lifecycleScope.launch {
             SupabaseClient.client.auth.loadFromStorage()
@@ -70,7 +81,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun showCategoriesMenu(view: View) {
+    fun showCategoriesMenu(view: View) {
         val popupMenu = PopupMenu(this, view)
 
         popupMenu.menu.add("الكل")
