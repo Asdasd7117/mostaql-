@@ -34,7 +34,6 @@ class SupabaseRealtimeService : Service() {
     private var realtimeChannel: RealtimeChannel? = null
 
     companion object {
-        // متغير استاتيكي لحفظ معرف المستخدم الحالي حتى لا نعتمد على الـ Auth في الخلفية
         var currentUserId: String? = null
     }
 
@@ -50,7 +49,6 @@ class SupabaseRealtimeService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        // جلب الـ userId الممرر من الواجهة وحفظه
         val receivedId = intent?.getStringExtra("USER_ID")
         if (!receivedId.isNullOrBlank()) {
             currentUserId = receivedId
@@ -86,22 +84,18 @@ class SupabaseRealtimeService : Service() {
                             val senderId = record["sender_id"]?.jsonPrimitive?.content ?: ""
                             val conversationId = record["conversation_id"]?.jsonPrimitive?.content?.toLongOrNull() ?: 0L
                             
-                            // الفحص بالاعتماد على المتغير الممرر المضمون
                             val myId = currentUserId
 
                             if (myId.isNullOrBlank()) {
-                                showToastOnMainThread("❌ فشل الإشعار: معرف المستخدم الحالي غير متوفر في الخدمة!")
                                 return@collect
                             }
                             if (senderId == myId) {
-                                // الرسالة صادرة من نفس الحساب، يتم تخطيها طبيعياً دون توست خطأ
                                 return@collect
                             }
                             if (text.isEmpty()) {
                                 return@collect
                             }
 
-                            // عرض الإشعار فوراً عند مطابقة الشروط
                             showIncomingMessageNotification(text, conversationId, senderId)
 
                         } catch (parseEx: Exception) {
@@ -147,7 +141,7 @@ class SupabaseRealtimeService : Service() {
         return NotificationCompat.Builder(this, channelId)
             .setSmallIcon(android.R.drawable.ic_menu_manage)
             .setContentTitle("خدمة المراسلة الفورية")
-            .setContentText("التطبيق مستعد لاستقبال الرسائل في الخلفية")
+            .setContentText("التطبيق مستعد استقبال الرسائل في الخلفية")
             .setPriority(NotificationCompat.PRIORITY_MIN)
             .setOngoing(true)
             .build()
@@ -173,7 +167,6 @@ class SupabaseRealtimeService : Service() {
             try {
                 realtimeChannel?.unsubscribe()
             } catch (e: Exception) {
-                // استثناء صامت عند التدمير
             }
             serviceScope.cancel()
         }
