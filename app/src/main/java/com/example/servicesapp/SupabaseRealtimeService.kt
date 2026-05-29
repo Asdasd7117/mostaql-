@@ -51,8 +51,8 @@ class SupabaseRealtimeService : Service() {
                 // التأكد من جلب الجلسة وتخزينها للخدمة
                 SupabaseClient.client.realtime.connect()
                 
-                // التعديل الجوهري: الاستماع لقناة عامة لكل الرسائل بدون حصرها في غرفة محددة
-                realtimeChannel = SupabaseClient.client.realtime.channel("global-messages-channel")
+                // التعديل الجوهري الثابت: إنشاء قناة استماع عامة ومباشرة لجدول الرسائل بالكامل لقاعدة البيانات
+                realtimeChannel = SupabaseClient.client.realtime.channel("messages-database-channel")
                 
                 val changeFlow = realtimeChannel?.postgresChangeFlow<PostgresAction>(schema = "public") {
                     table = "messages"
