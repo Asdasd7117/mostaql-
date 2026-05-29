@@ -24,6 +24,7 @@ import io.github.jan.supabase.realtime.channel
 import io.github.jan.supabase.realtime.postgresChangeFlow
 import io.github.jan.supabase.realtime.RealtimeChannel
 import io.github.jan.supabase.realtime.decodeRecord
+import io.github.jan.supabase.realtime.realtime
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -191,38 +192,44 @@ class ChatActivity : AppCompatActivity() {
         val convId = conversationId ?: return
         lifecycleScope.launch(Dispatchers.IO) {
             try {
-                realtimeChannel = SupabaseClient.client.channel("chat-room-$convId")
+                SupabaseClient.client.realtime.connect()
                 
-                realtimeChannel?.postgresChangeFlow<PostgresAction>(schema = "public") {
+                realtimeChannel = SupabaseClient.client.realtime.channel("chat-room-$convId")
+                
+                val changeFlow = realtimeChannel?.postgresChangeFlow<PostgresAction>(schema = "public") {
                     table = "messages"
-                }?.collect { action ->
-                    if (action is PostgresAction.Insert) {
-                        try {
-                            val message = action.decodeRecord<Message>()
-                            if (message.conversationId == convId) {
-                                withContext(Dispatchers.Main) {
-                                    if (messagesContainer.childCount == 1 && messagesContainer.getChildAt(0) is TextView) {
-                                        val firstChild = messagesContainer.getChildAt(0) as TextView
-                                        if (firstChild.text == "No messages yet...") {
-                                            messagesContainer.removeAllViews()
-                                        }
-                                    }
-                                    addMessageBubble(message)
-                                    scrollView.post { scrollView.fullScroll(ScrollView.FOCUS_DOWN) }
-                                }
-                                currentUserId?.let { uid ->
-                                    if (message.senderId != uid) {
-                                        ChatRepository.markMessagesAsRead(convId, uid)
-                                    }
-                                }
-                            }
-                        } catch (parseEx: Exception) {
-                            Log.e("ChatActivity", "Realtime parse error", parseEx)
-                        }
-                    }
                 }
                 
                 realtimeChannel?.subscribe()
+
+                launch(Dispatchers.IO) {
+                    changeFlow?.collect { action ->
+                        if (action is PostgresAction.Insert) {
+                            try {
+                                val message = action.decodeRecord<Message>()
+                                if (message.conversationId == convId) {
+                                    withContext(Dispatchers.Main) {
+                                        if (messagesContainer.childCount == 1 && messagesContainer.getChildAt(0) is TextView) {
+                                            val firstChild = messagesContainer.getChildAt(0) as TextView
+                                            if (firstChild.text == "No messages yet...") {
+                                                messagesContainer.removeAllViews()
+                                            }
+                                        }
+                                        addMessageBubble(message)
+                                        scrollView.post { scrollView.fullScroll(ScrollView.FOCUS_DOWN) }
+                                    }
+                                    currentUserId?.let { uid ->
+                                        if (message.senderId != uid) {
+                                            ChatRepository.markMessagesAsRead(convId, uid)
+                                        }
+                                    }
+                                }
+                            } catch (parseEx: Exception) {
+                                Log.e("ChatActivity", "Realtime parse error", parseEx)
+                            }
+                        }
+                    }
+                }
             } catch (e: Exception) {
                 Log.e("ChatActivity", "Realtime connect error", e)
             }
