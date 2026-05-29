@@ -51,18 +51,6 @@ class MainActivity : AppCompatActivity() {
         projectsContainer = findViewById(R.id.projectsContainer)
         btnMyProjects = findViewById(R.id.btnMyProjects)
 
-        // التصحيح الجذري والآمن لتشغيل الخدمة عبر الـ Intent وفقاً للمعاير النظامية لأندرويد
-        val serviceIntent = Intent(this, SupabaseRealtimeService::class.java)
-        try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                startForegroundService(serviceIntent)
-            } else {
-                startService(serviceIntent)
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-
         lifecycleScope.launch {
             SupabaseClient.client.auth.loadFromStorage()
 
@@ -74,6 +62,20 @@ class MainActivity : AppCompatActivity() {
 
             val session = SupabaseClient.client.auth.currentSessionOrNull()
             val email = session?.user?.email ?: "user@example.com"
+            val userId = session?.user?.id?.toString()
+
+            val serviceIntent = Intent(this@MainActivity, SupabaseRealtimeService::class.java).apply {
+                putExtra("USER_ID", userId)
+            }
+            try {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    startForegroundService(serviceIntent)
+                } else {
+                    startService(serviceIntent)
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
 
             updateNavigationView(email)
             setupNavigation()
