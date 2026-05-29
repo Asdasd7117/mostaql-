@@ -23,7 +23,6 @@ import io.github.jan.supabase.realtime.PostgresAction
 import io.github.jan.supabase.realtime.channel
 import io.github.jan.supabase.realtime.postgresChangeFlow
 import io.github.jan.supabase.realtime.RealtimeChannel
-import io.github.jan.supabase.realtime.decodeRecord
 import io.github.jan.supabase.realtime.realtime
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -206,8 +205,21 @@ class ChatActivity : AppCompatActivity() {
                     changeFlow?.collect { action ->
                         if (action is PostgresAction.Insert) {
                             try {
-                                val message = action.decodeRecord<Message>()
-                                if (message.conversationId == convId) {
+                                val record = action.record
+                                
+                                val incomingConvId = record["conversation_id"]?.jsonPrimitive?.content?.toLongOrNull()
+                                val text = record["message_text"]?.jsonPrimitive?.content ?: ""
+                                val senderId = record["sender_id"]?.jsonPrimitive?.content ?: ""
+                                val id = record["id"]?.jsonPrimitive?.content?.toLongOrNull() ?: 0L
+                                
+                                if (incomingConvId == convId && text.isNotEmpty()) {
+                                    val message = Message(
+                                        id = id,
+                                        conversationId = convId,
+                                        senderId = senderId,
+                                        messageText = text
+                                    )
+                                    
                                     withContext(Dispatchers.Main) {
                                         if (messagesContainer.childCount == 1 && messagesContainer.getChildAt(0) is TextView) {
                                             val firstChild = messagesContainer.getChildAt(0) as TextView
@@ -218,14 +230,15 @@ class ChatActivity : AppCompatActivity() {
                                         addMessageBubble(message)
                                         scrollView.post { scrollView.fullScroll(ScrollView.FOCUS_DOWN) }
                                     }
+                                    
                                     currentUserId?.let { uid ->
-                                        if (message.senderId != uid) {
+                                        if (senderId != uid) {
                                             ChatRepository.markMessagesAsRead(convId, uid)
                                         }
                                     }
                                 }
                             } catch (parseEx: Exception) {
-                                Log.e("ChatActivity", "Realtime parse error", parseEx)
+                                Log.e("ChatActivity", "JSON parse error", parseEx)
                             }
                         }
                     }
@@ -294,7 +307,7 @@ class ChatActivity : AppCompatActivity() {
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
                     btnSend.isEnabled = true
-                    Toast.makeText(this@ChatActivity, "Send Error: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
+                    Toast.makeText(this@ChatMessage, "Send Error: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
                 }
             }
         }
